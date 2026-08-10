@@ -185,3 +185,9 @@ def test_history_tab_has_direct_catalogue_and_deep_links():
     assert 'window.history.replaceState(null, \'\', `#history?repo=${encodeURIComponent(repo)}`)' in source
     assert 'const snapshots = payload.history;' in source
     assert "new URLSearchParams(initialQuery).get('repo')" in source
+
+
+def test_dashboard_declares_a_local_svg_favicon():
+    static = Path(__file__).parents[1] / "app" / "static"
+    assert 'rel="icon" href="/static/favicon.svg" type="image/svg+xml"' in (static / "index.html").read_text()
+    assert '<svg' in (static / "favicon.svg").read_text()
