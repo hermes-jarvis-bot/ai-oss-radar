@@ -10,7 +10,8 @@ services:
       - ${RADAR_DATA_DIR:?Set RADAR_DATA_DIR to an external runtime directory}:/data:ro
       - ${RADAR_DATA_DIR:?Set RADAR_DATA_DIR to an external runtime directory}/manual-watchlist:/control
     env_file:
-      - path: ${REFRESH_ENV_FILE:?Set REFRESH_ENV_FILE to the refresh token file}
+      - path: ${REFRESH_ENV_FILE:-../dashboard/.refresh.env}
+        required: false
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
