@@ -262,7 +262,7 @@ A fresh clone supports this exact uv-first flow:
 ```bash
 uv sync --group dev
 export GITHUB_TOKEN=...
-uv run ai-oss-radar run --top 10
+uv run ai-oss-radar run --top 12
 uv run pytest
 uv run ruff check .
 ```

@@ -54,7 +54,7 @@ uv lock
 uv sync --group dev
 uv run pytest
 uv run ruff check .
-uv run ai-oss-radar run --top 10 --delivery-mode stdout
+uv run ai-oss-radar run --top 12 --delivery-mode stdout
 ```
 
 The last command requires `GITHUB_TOKEN` and performs live GitHub API requests.

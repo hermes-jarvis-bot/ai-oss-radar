@@ -238,6 +238,16 @@ def test_dynamic_only_candidate_does_not_refresh_its_own_expiry(tmp_path):
     assert datetime.fromisoformat(expiry) < datetime.now(UTC) + timedelta(hours=2)
 
 
+def test_default_dynamic_watchlist_tracks_top_twelve(tmp_path):
+    conn = connect(str(tmp_path / "radar.db"))
+    items = [
+        {"repo": f"owner/repo-{index}", "stars": 1_000, "stars_24h": None, "growth_ratio_24h": None, "score": 1}
+        for index in range(13)
+    ]
+    update_dynamic_watchlist(conn, items, [], [item["repo"] for item in items])
+    assert len(active_watchlist(conn)) == 12
+
+
 def test_reports_are_published_via_atomic_rename(tmp_path, monkeypatch):
     replacements = []
     original = core.os.replace

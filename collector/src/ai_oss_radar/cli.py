@@ -25,7 +25,7 @@ def main() -> None:
     parser.add_argument("--config", default="queries.yaml")
     parser.add_argument("--watchlist", default="watchlist.yaml")
     parser.add_argument("--manual-watchlist", default="/data/manual-watchlist/pins.json")
-    parser.add_argument("--top", type=int, default=10)
+    parser.add_argument("--top", type=int, default=12)
     parser.add_argument("--delivery-mode", choices=["stdout", "telegram", "none"], default="none")
     args = parser.parse_args()
 
@@ -40,7 +40,7 @@ def main() -> None:
         stamp = store(conn, repos.values(), trending_signals)
         tolerance = int(load_config(args.config)["snapshot_tolerance_hours"])
         update_dynamic_watchlist(
-            conn, ranked(conn, 50, tolerance), trending_signals, independently_discovered
+            conn, ranked(conn, 50, tolerance), trending_signals, independently_discovered, top_limit=args.top
         )
         print(
             f"stored {len(repos)} repositories and {len(trending_signals)} Trending signals at {stamp}",

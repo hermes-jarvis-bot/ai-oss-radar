@@ -146,13 +146,14 @@ def update_dynamic_watchlist(
     trending_signals: Iterable[TrendingSignal],
     independently_discovered: Iterable[str] = (),
     retention_days: int = 14,
+    top_limit: int = 12,
 ) -> None:
     """Retain candidates after a fresh, independent signal for bounded follow-up."""
     now = datetime.now(UTC).replace(microsecond=0)
     expires = (now + timedelta(days=retention_days)).isoformat()
     independent = {name.lower() for name in independently_discovered}
     candidates: dict[str, str] = {}
-    for item in items[:10]:
+    for item in items[:top_limit]:
         if item["repo"].lower() in independent:
             candidates[item["repo"]] = "top_ranked"
     for item in under_the_radar(items):

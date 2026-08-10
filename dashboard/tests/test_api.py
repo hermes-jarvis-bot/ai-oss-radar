@@ -145,3 +145,17 @@ def test_metric_cards_drill_into_their_exact_counts():
     assert "state.repos.filter(x => x.trend_state === 'ACCELERATING')" in source
     assert "selectMetric(metric.dataset.metric)" in source
     assert "candidateScope = metric === 'accelerating' ? 'accelerating' : 'top'" in source
+
+
+def test_watchlist_sort_controls_and_metric_focus_contracts():
+    static = Path(__file__).parents[1] / "app" / "static"
+    index = (static / "index.html").read_text()
+    source = (static / "app.js").read_text()
+    styles = (static / "style.css").read_text()
+    assert 'data-watch-sort="default"' in index
+    assert 'data-watch-sort="stars-desc"' in index
+    assert 'data-watch-sort="stars-asc"' in index
+    assert 'function sortedWatchlist()' in source
+    assert "localStorage.setItem('radar-watch-sort', sort)" in source
+    assert 'box-shadow:inset 0 0 0 2px var(--accent)' in styles
+    assert 'border-radius:13px' in styles
