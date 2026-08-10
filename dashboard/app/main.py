@@ -1,19 +1,24 @@
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import re
 import sqlite3
 from pathlib import Path
 from typing import Any
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 DB_PATH = os.getenv("RADAR_DB", "/data/radar.db")
 CONTROL_PATH = Path(os.getenv("MANUAL_WATCHLIST", "/control/pins.json"))
+REFRESH_TOKEN = os.getenv("RADAR_REFRESH_TOKEN", "")
+REFRESH_RUNNER_URL = os.getenv("RADAR_REFRESH_RUNNER_URL", "http://host.docker.internal:8097")
 REPOSITORY_NAME = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 STATIC = Path(__file__).parent / "static"
 app = FastAPI(title="AI OSS Radar Dashboard", version="0.1.0")
@@ -192,6 +197,31 @@ def remove_manual_watchlist(full_name: str) -> dict[str, list[str]]:
         raise HTTPException(status_code=422, detail="Expected owner/repository")
     save_manual_pins([name for name in manual_pins() if name.lower() != full_name.lower()])
     return {"repositories": manual_pins()}
+
+def refresh_authorised(token: str | None) -> None:
+    if not REFRESH_TOKEN or not token or not hmac.compare_digest(token, REFRESH_TOKEN):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def runner_request(path: str) -> dict[str, Any]:
+    request = Request(f"{REFRESH_RUNNER_URL}{path}", method="POST" if path == "/run" else "GET", headers={"X-Radar-Refresh-Token": REFRESH_TOKEN})
+    try:
+        with urlopen(request, timeout=5) as response:
+            return json.loads(response.read())
+    except URLError as error:
+        raise HTTPException(status_code=503, detail="Refresh runner is unavailable") from error
+
+
+@app.post("/api/internal/refresh", status_code=202)
+def refresh(x_radar_refresh_token: str | None = Header(default=None)) -> dict[str, Any]:
+    refresh_authorised(x_radar_refresh_token)
+    return runner_request("/run")
+
+
+@app.get("/api/internal/refresh")
+def refresh_status(x_radar_refresh_token: str | None = Header(default=None)) -> dict[str, Any]:
+    refresh_authorised(x_radar_refresh_token)
+    return runner_request("/status")
 
 
 @app.get("/")

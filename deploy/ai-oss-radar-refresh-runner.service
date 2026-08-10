@@ -1,0 +1,19 @@
+[Unit]
+Description=AI OSS Radar manual collection refresh runner
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+EnvironmentFile=/root/var/ai-oss-radar/refresh.env
+Environment=RADAR_ROOT=/root/projects/ai-oss-radar
+Environment=RADAR_ENV_FILE=/root/projects/ai-oss-radar/deploy/.env.production
+Environment=RADAR_REFRESH_BIND=0.0.0.0
+ExecStart=/usr/bin/python3 /root/projects/ai-oss-radar/scripts/refresh-runner.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

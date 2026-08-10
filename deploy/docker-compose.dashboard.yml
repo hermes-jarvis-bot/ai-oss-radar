@@ -9,6 +9,11 @@ services:
     volumes:
       - ${RADAR_DATA_DIR:?Set RADAR_DATA_DIR to an external runtime directory}:/data:ro
       - ${RADAR_DATA_DIR:?Set RADAR_DATA_DIR to an external runtime directory}/manual-watchlist:/control
+    env_file:
+      - path: ${REFRESH_ENV_FILE:?Set REFRESH_ENV_FILE to the refresh token file}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       RADAR_DB: /data/radar.db
       MANUAL_WATCHLIST: /control/pins.json
+      RADAR_REFRESH_RUNNER_URL: http://host.docker.internal:8097
