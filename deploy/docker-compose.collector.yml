@@ -4,7 +4,7 @@ services:
       context: ../collector
     image: ai-oss-radar-product-collector:local
     env_file:
-      - path: ../collector/.env
+      - path: ${COLLECTOR_ENV_FILE:-../collector/.env}
         required: false
     volumes:
       - ${RADAR_DATA_DIR:?Set RADAR_DATA_DIR to an external runtime directory}:/data
