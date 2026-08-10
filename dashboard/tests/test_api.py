@@ -171,4 +171,6 @@ def test_history_tab_has_direct_catalogue_and_deep_links():
     assert 'function renderHistoryCatalogue()' in source
     assert 'function showHistoryCatalogue(updateLocation = true)' in source
     assert '`#history?repo=${encodeURIComponent(repo)}`' in source
+    assert 'window.history.replaceState(null, \'\', `#history?repo=${encodeURIComponent(repo)}`)' in source
+    assert 'const snapshots = payload.history;' in source
     assert "new URLSearchParams(initialQuery).get('repo')" in source

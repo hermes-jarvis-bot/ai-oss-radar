@@ -154,12 +154,12 @@ async function showHistory(repo) {
   document.querySelector('#history-catalog').hidden = true;
   document.querySelector('#history-detail').hidden = false;
   setView('history', false);
-  history.replaceState(null, '', `#history?repo=${encodeURIComponent(repo)}`);
+  window.history.replaceState(null, '', `#history?repo=${encodeURIComponent(repo)}`);
   const payload = await api(`/api/repositories/${encodeURIComponent(repo)}/history`);
   const item = payload.summary;
-  const history = payload.history;
-  const values = history.map(x => x.stars);
-  const labels = history.map(x => date(x.ts));
+  const snapshots = payload.history;
+  const values = snapshots.map(x => x.stars);
+  const labels = snapshots.map(x => date(x.ts));
   const tooltipDate = value => new Date(value).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US');
   const css = getComputedStyle(document.documentElement);
   const accent = css.getPropertyValue('--accent').trim();
@@ -224,7 +224,7 @@ async function showHistory(repo) {
           cornerRadius: 9, padding: 12,
           titleFont: { family: 'system-ui', weight: '700' }, bodyFont: { family: 'system-ui' },
           callbacks: {
-            title: items => `${t('snapshot')} · ${tooltipDate(history[items[0].dataIndex].ts)}`,
+            title: items => `${t('snapshot')} · ${tooltipDate(snapshots[items[0].dataIndex].ts)}`,
             label: item => `${t('stars')}: ${fmt(item.parsed.y)}`,
             afterLabel: item => {
               const index = item.dataIndex;
@@ -245,13 +245,13 @@ async function showHistory(repo) {
         if (!elements.length) return;
         const index = elements[0].index;
         const delta = index ? values[index] - values[index - 1] : null;
-        chartSelection.textContent = `${t('selectedSnapshot')} · ${tooltipDate(history[index].ts)} · ${t('stars')}: ${fmt(values[index])}${delta == null ? ` · ${t('baseline')}` : ` · ${t('changeSincePrevious')}: +${fmt(delta)}`}`;
+        chartSelection.textContent = `${t('selectedSnapshot')} · ${tooltipDate(snapshots[index].ts)} · ${t('stars')}: ${fmt(values[index])}${delta == null ? ` · ${t('baseline')}` : ` · ${t('changeSincePrevious')}: +${fmt(delta)}`}`;
       },
     },
     plugins: [latestLabel],
   });
   document.querySelector('#history-summary').innerHTML = `<div><p class="eyebrow">${t('projectHistory')}</p><h2>${esc(item.full_name)}</h2><p>${esc(item.description || t('noDescription'))}</p><p id="history-note" class="history-note"></p><div class="tags"><span>${esc(item.language || '—')}</span><span>${fmt(item.stars)} stars</span><span>${t('lastSnapshot')} ${date(item.ts)}</span></div></div><div class="history-actions"><button class="history-back" data-history-back>${t('historyBack')}</button><a href="${esc(github(item))}" target="_blank" rel="noreferrer noopener">${t('openGithub')}</a>${pinButton(item.full_name)}</div>`;
-  document.querySelector('#history-note').textContent = `${history.length} ${t('observations')} · ${date(history[0].ts)} — ${date(history.at(-1).ts)}`;
+  document.querySelector('#history-note').textContent = `${snapshots.length} ${t('observations')} · ${date(snapshots[0].ts)} — ${date(snapshots.at(-1).ts)}`;
   bindInteractiveCards('#history-summary');
   document.querySelector('[data-history-back]').onclick = () => showHistoryCatalogue();
   setView('history', false);
