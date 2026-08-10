@@ -168,6 +168,10 @@ def test_history_tab_has_direct_catalogue_and_deep_links():
     assert 'id="history-catalog"' in index
     assert 'id="history-top-list"' in index
     assert 'id="history-pinned-list"' in index
+    assert 'id="history-watch-list"' in index
+    assert 'historyWatch' in source
+    assert 'const watched = state.watch.filter(item => !item.manual);' in source
+    assert "document.querySelector('#history-watch-section').hidden = !watched.length;" in source
     assert 'function renderHistoryCatalogue()' in source
     assert 'function showHistoryCatalogue(updateLocation = true)' in source
     assert '`#history?repo=${encodeURIComponent(repo)}`' in source
