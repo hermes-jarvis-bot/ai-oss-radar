@@ -93,7 +93,7 @@ function renderWatch() {
   const items = sortedWatchlist();
   document.querySelectorAll('[data-watch-sort]').forEach(button => { const active = button.dataset.watchSort === watchSort; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   document.querySelector('#watch-sort-note').textContent = watchSort === 'default' ? t('watchDefaultOrder') : '';
-  document.querySelector('#watchlist').innerHTML = items.length ? items.map(x => `<article><div><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><span>${x.manual ? t('manualPin') : esc(x.reason || 'watchlist')}</span></div><div><strong>${fmt(x.stars)}</strong><small>${x.manual ? t('noExpiry') : `${t('until')} ${date(x.expires_at)}`}</small>${pinButton(x.full_name)}</div></article>`).join('') : `<p class="empty">${t('watchEmpty')}</p>`;
+  document.querySelector('#watchlist').innerHTML = items.length ? items.map(x => `<article data-repo="${esc(x.full_name)}"><div><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><span>${x.manual ? t('manualPin') : esc(x.reason || 'watchlist')}</span></div><div><strong>${fmt(x.stars)}</strong><small>${x.manual ? t('noExpiry') : `${t('until')} ${date(x.expires_at)}`}</small>${pinButton(x.full_name)}</div></article>`).join('') : `<p class="empty">${t('watchEmpty')}</p>`;
   bindInteractiveCards('#watchlist');
 }
 
@@ -106,7 +106,7 @@ function selectWatchSort(sort) {
 function renderPinned() {
   const indexed = new Map(state.watch.map(x => [x.full_name.toLowerCase(), x]));
   const items = state.pins.map(name => indexed.get(name.toLowerCase()) || { full_name: name, manual: true });
-  document.querySelector('#pinned-list').innerHTML = items.map(x => `<article class="candidate pinned-card"><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('pendingSnapshot'))}</p><div class="tags"><span>${t('manualPin')}</span><span>${x.stars == null ? t('snapshotWaiting') : `${fmt(x.stars)} stars`}</span></div></div><div class="numbers">${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('pinnedEmpty')}</p>`;
+  document.querySelector('#pinned-list').innerHTML = items.map(x => `<article class="candidate pinned-card" data-repo="${esc(x.full_name)}"><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('pendingSnapshot'))}</p><div class="tags"><span>${t('manualPin')}</span><span>${x.stars == null ? t('snapshotWaiting') : `${fmt(x.stars)} stars`}</span></div></div><div class="numbers">${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('pinnedEmpty')}</p>`;
   bindInteractiveCards('#pinned-list');
 }
 

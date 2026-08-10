@@ -161,6 +161,13 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert 'border-radius:13px' in styles
 
 
+def test_pinned_cards_and_watchlist_rows_link_to_history_details():
+    source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
+    assert '<article data-repo="${esc(x.full_name)}">' in source
+    assert '<article class="candidate pinned-card" data-repo="${esc(x.full_name)}">' in source
+    assert "showHistory(card.dataset.repo)" in source
+
+
 def test_history_tab_has_direct_catalogue_and_deep_links():
     static = Path(__file__).parents[1] / "app" / "static"
     index = (static / "index.html").read_text()
