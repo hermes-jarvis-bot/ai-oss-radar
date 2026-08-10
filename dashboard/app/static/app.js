@@ -1,6 +1,7 @@
 const state = { repos: [], all: [], watch: [], pins: [] };
 let historyChart = null;
 let activeHistoryRepo = null;
+let candidateScope = 'top';
 const translations = {
   ru: { refresh: 'Обновить экран', topToday: 'Top сегодня', accelerating: 'Ускоряются', top: 'Top', pinnedTab: 'Мои', history: 'История', candidates: 'Кандидаты', candidatesNote: 'Ранжирование из последнего отчёта.', filter: 'Поиск репозитория', watchNote: 'Автоматические кандидаты и ваши ручные закрепления.', days: 'дней', pinAdd: '+ Закрепить', pinnedTitle: 'Мои закреплённые', pinnedNote: 'Постоянно наблюдаемые проекты без 14-day срока.', historyCandidate: 'История кандидата', historySelect: 'Выберите репозиторий в разделе Top.', footer: 'Потяните страницу вниз, чтобы обновить локальные данные. GitHub collection выполняется по расписанию. · SQLite history локальна.', loading: 'Загрузка телеметрии…', noDescription: 'Описание отсутствует', aiTooling: 'AI-инструменты', noResults: 'Ничего не найдено.', pin: '☆ Закрепить', pinned: '★ Закреплено', manualPin: 'ручное закрепление', noExpiry: 'без срока', until: 'до', watchEmpty: 'Watchlist появится после ближайшего collection run.', pendingSnapshot: 'Описание и метрики появятся после ближайшего collection run.', snapshotWaiting: 'ожидает snapshot', pinnedEmpty: 'Пока нет ручных закреплений. Добавьте owner/repository во вкладке Watchlist.', pinRemoved: 'ручное закрепление снято.', pinAdded: 'закреплён для ежедневного наблюдения.', noSnapshots: 'Нет снимков — дождитесь первого collection run.', noData: 'нет данных', urgent: 'истекают ≤3 дней:', noUrgent: 'срочных истечений нет', status: 'Данные:', schedule: 'GitHub collection — ежедневно в 11:00 Алматы', observations: 'наблюдений', lastSnapshot: 'последний снимок:', openGithub: 'Открыть GitHub ↗', projectHistory: 'ИСТОРИЯ ПРОЕКТА', fault: 'Сбой', chartAria: 'График роста stars', stars: 'Stars', snapshot: 'Снимок', dailyChange: 'Изменение за день', latestValue: 'Последнее собранное значение', tapPoint: 'Нажмите точку, чтобы изучить snapshot', baseline: 'Базовый снимок', selectedSnapshot: 'Выбранный снимок', changeSincePrevious: 'изменение с прошлого снимка', now: 'СЕЙЧАС' },
   en: { refresh: 'Refresh screen', topToday: 'Top today', accelerating: 'Accelerating', top: 'Top', pinnedTab: 'Pinned', history: 'History', candidates: 'Candidates', candidatesNote: 'Ranking from the latest report.', filter: 'Search repositories', watchNote: 'Automatic candidates and your manual pins.', days: 'days', pinAdd: '+ Pin', pinnedTitle: 'My pinned projects', pinnedNote: 'Projects monitored indefinitely, without a 14-day expiry.', historyCandidate: 'Candidate history', historySelect: 'Choose a repository from Top.', footer: 'Pull down to refresh local data. GitHub collection runs on schedule. · SQLite history is local.', loading: 'Loading telemetry…', noDescription: 'No description available', aiTooling: 'AI tooling', noResults: 'No repositories found.', pin: '☆ Pin', pinned: '★ Pinned', manualPin: 'manual pin', noExpiry: 'no expiry', until: 'until', watchEmpty: 'The watchlist will appear after the next collection run.', pendingSnapshot: 'Description and metrics will appear after the next collection run.', snapshotWaiting: 'awaiting snapshot', pinnedEmpty: 'No manual pins yet. Add owner/repository in Watchlist.', pinRemoved: 'manual pin removed.', pinAdded: 'pinned for daily observation.', noSnapshots: 'No snapshots yet — wait for the first collection run.', noData: 'no data', urgent: 'expiring in ≤3 days:', noUrgent: 'no urgent expiries', status: 'Data:', schedule: 'GitHub collection — daily at 11:00 Almaty', observations: 'observations', lastSnapshot: 'latest snapshot:', openGithub: 'Open GitHub ↗', projectHistory: 'PROJECT HISTORY', fault: 'Fault', chartAria: 'Star growth chart', stars: 'Stars', snapshot: 'Snapshot', dailyChange: 'Daily change', latestValue: 'Latest collected value', tapPoint: 'Tap a point to inspect this snapshot', baseline: 'Baseline snapshot', selectedSnapshot: 'Selected snapshot', changeSincePrevious: 'change since previous snapshot', now: 'NOW' },
@@ -26,6 +27,9 @@ function applyLanguage() {
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   const filter = document.querySelector('#filter');
   filter.placeholder = t('filter'); filter.setAttribute('aria-label', t('filter'));
+  document.querySelector('[data-metric="top"]').setAttribute('aria-label', t('topToday'));
+  document.querySelector('[data-metric="accelerating"]').setAttribute('aria-label', t('accelerating'));
+  document.querySelector('[data-metric="watch"]').setAttribute('aria-label', 'Watchlist');
   document.querySelector('#status').textContent = t('loading');
 }
 
@@ -60,9 +64,19 @@ function pinButton(name) {
 
 function renderCandidates() {
   const query = document.querySelector('#filter').value.toLowerCase();
-  const items = state.repos.filter(x => x.full_name.toLowerCase().includes(query));
+  const counted = candidateScope === 'accelerating' ? state.repos.filter(x => x.trend_state === 'ACCELERATING') : state.repos;
+  const items = counted.filter(x => x.full_name.toLowerCase().includes(query));
+  document.querySelector('#candidate-scope').textContent = `${candidateScope === 'accelerating' ? t('accelerating') : t('topToday')}: ${fmt(counted.length)}`;
   document.querySelector('#candidates').innerHTML = items.map((x, i) => `<article class="candidate" data-repo="${esc(x.full_name)}"><div class="rank">#${i + 1}</div><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('noDescription'))}</p><div class="tags"><span>${esc(x.category || x.language || t('aiTooling'))}</span><span class="state ${esc(x.trend_state || 'bootstrap').toLowerCase()}">${esc(x.trend_state || 'BOOTSTRAP')}</span></div></div><div class="numbers"><b>${fmt(x.stars)}</b><small>stars</small><strong class="delta">${x.stars_24h == null ? 'N/A' : '+' + fmt(x.stars_24h)}</strong><small>24h</small>${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('noResults')}</p>`;
   bindInteractiveCards('#candidates');
+}
+
+function selectMetric(metric) {
+  if (metric === 'watch') { setView('watch'); renderWatch(); return; }
+  candidateScope = metric === 'accelerating' ? 'accelerating' : 'top';
+  document.querySelector('#filter').value = '';
+  setView('candidates');
+  renderCandidates();
 }
 
 function renderWatch() {
@@ -212,7 +226,8 @@ async function load() {
 
 document.querySelector('#filter').oninput = renderCandidates;
 document.querySelector('#pin-form').onsubmit = async event => { event.preventDefault(); const input = document.querySelector('#pin-input'); try { await togglePin(input.value.trim()); input.value = ''; } catch (error) { document.querySelector('#pin-status').textContent = `${t('fault')}: ${error.message}`; } };
-document.querySelectorAll('.tab').forEach(tab => tab.onclick = () => { setView(tab.dataset.view); load(); });
+document.querySelectorAll('.tab').forEach(tab => tab.onclick = () => { if (tab.dataset.view === 'candidates') candidateScope = 'top'; setView(tab.dataset.view); load(); });
+document.querySelectorAll('[data-metric]').forEach(metric => metric.onclick = () => selectMetric(metric.dataset.metric));
 document.querySelectorAll('.language-button').forEach(button => button.onclick = () => { language = button.dataset.language; localStorage.setItem('radar-language', language); applyLanguage(); applyTheme(); load(); });
 document.querySelector('#theme-toggle').onclick = () => { theme = ({ system: 'light', light: 'dark', dark: 'system' })[theme]; localStorage.setItem('radar-theme', theme); applyTheme(); };
 systemTheme.addEventListener('change', () => { if (theme === 'system') applyTheme(); });

@@ -133,3 +133,15 @@ def test_chartjs_history_contract_is_vendored_and_interactive():
     assert 'afterDatasetsDraw(chart)' in source
     assert 'onClick: (_, elements)' in source
     assert 'dailyChange' in source
+
+
+def test_metric_cards_drill_into_their_exact_counts():
+    static = Path(__file__).parents[1] / "app" / "static"
+    index = (static / "index.html").read_text()
+    source = (static / "app.js").read_text()
+    assert 'data-metric="top"' in index
+    assert 'data-metric="accelerating"' in index
+    assert 'data-metric="watch"' in index
+    assert "state.repos.filter(x => x.trend_state === 'ACCELERATING')" in source
+    assert "selectMetric(metric.dataset.metric)" in source
+    assert "candidateScope = metric === 'accelerating' ? 'accelerating' : 'top'" in source
