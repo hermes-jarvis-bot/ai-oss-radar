@@ -159,3 +159,16 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert "localStorage.setItem('radar-watch-sort', sort)" in source
     assert 'box-shadow:inset 0 0 0 2px var(--accent)' in styles
     assert 'border-radius:13px' in styles
+
+
+def test_history_tab_has_direct_catalogue_and_deep_links():
+    static = Path(__file__).parents[1] / "app" / "static"
+    index = (static / "index.html").read_text()
+    source = (static / "app.js").read_text()
+    assert 'id="history-catalog"' in index
+    assert 'id="history-top-list"' in index
+    assert 'id="history-pinned-list"' in index
+    assert 'function renderHistoryCatalogue()' in source
+    assert 'function showHistoryCatalogue(updateLocation = true)' in source
+    assert '`#history?repo=${encodeURIComponent(repo)}`' in source
+    assert "new URLSearchParams(initialQuery).get('repo')" in source
