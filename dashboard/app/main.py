@@ -1,0 +1,199 @@
+from __future__ import annotations
+
+import json
+import os
+import re
+import sqlite3
+from pathlib import Path
+from typing import Any
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+DB_PATH = os.getenv("RADAR_DB", "/data/radar.db")
+CONTROL_PATH = Path(os.getenv("MANUAL_WATCHLIST", "/control/pins.json"))
+REPOSITORY_NAME = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+STATIC = Path(__file__).parent / "static"
+app = FastAPI(title="AI OSS Radar Dashboard", version="0.1.0")
+app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+class PinRequest(BaseModel):
+    full_name: str
+
+
+def manual_pins() -> list[str]:
+    if not CONTROL_PATH.exists():
+        return []
+    try:
+        data = json.loads(CONTROL_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    values = data.get("repositories", []) if isinstance(data, dict) else []
+    return sorted(
+        {
+            value.lower()
+            for value in values
+            if isinstance(value, str) and REPOSITORY_NAME.fullmatch(value)
+        }
+    )
+
+
+def save_manual_pins(values: list[str]) -> None:
+    CONTROL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temporary = CONTROL_PATH.with_suffix(".json.tmp")
+    temporary.write_text(
+        json.dumps({"repositories": sorted(set(values))}, indent=2) + "\n", encoding="utf-8"
+    )
+    os.replace(temporary, CONTROL_PATH)
+
+
+def db() -> sqlite3.Connection:
+    if not Path(DB_PATH).exists():
+        raise HTTPException(status_code=503, detail="Radar database is not available")
+    conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def rows(query: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
+    with db() as conn:
+        return [dict(row) for row in conn.execute(query, params).fetchall()]
+
+
+def latest_report_top() -> list[dict[str, Any]]:
+    reports = Path(DB_PATH).parent / "reports"
+    files = sorted(reports.glob("*.json")) if reports.exists() else []
+    if not files:
+        return []
+    try:
+        return json.loads(files[-1].read_text(encoding="utf-8")).get("top", [])
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+@app.get("/health")
+def health() -> dict[str, Any]:
+    with db() as conn:
+        snapshot_count = conn.execute("SELECT count(*) FROM snapshots").fetchone()[0]
+        latest = conn.execute("SELECT max(ts) FROM snapshots").fetchone()[0]
+    return {"ok": True, "snapshots": snapshot_count, "latest_snapshot": latest}
+
+
+@app.get("/api/summary")
+def summary() -> dict[str, Any]:
+    with db() as conn:
+        latest = conn.execute("SELECT max(ts) FROM snapshots").fetchone()[0]
+        if not latest:
+            return {"latest_snapshot": None, "repositories": []}
+        latest_repos = [
+            dict(row)
+            for row in conn.execute(
+                """SELECT full_name, html_url, description, stars, language, topics, created_at, pushed_at
+                   FROM snapshots WHERE ts=? ORDER BY stars DESC LIMIT 100""",
+                (latest,),
+            )
+        ]
+        metadata = {repo["full_name"]: repo for repo in latest_repos}
+        repos = latest_report_top() or latest_repos
+        for repo in repos:
+            name = repo.get("repo") or repo["full_name"]
+            repo["repo"] = name
+            repo.update(metadata.get(name, {}))
+            repo["full_name"] = name
+            previous = conn.execute(
+                """SELECT stars FROM snapshots WHERE full_name=? AND ts<?
+                   ORDER BY ts DESC LIMIT 1""",
+                (repo["full_name"], latest),
+            ).fetchone()
+            repo["delta_since_previous"] = repo["stars"] - previous[0] if previous else None
+        return {"latest_snapshot": latest, "repositories": repos}
+
+
+@app.get("/api/repositories")
+def repositories(limit: int = 100) -> list[dict[str, Any]]:
+    return rows(
+        """WITH ordered AS (
+               SELECT full_name, stars, ts,
+                      count(*) OVER (PARTITION BY full_name) AS observations,
+                      min(ts) OVER (PARTITION BY full_name) AS first_seen,
+                      row_number() OVER (PARTITION BY full_name ORDER BY ts DESC) AS row_number
+               FROM snapshots
+           )
+           SELECT full_name, stars AS current_stars, observations, first_seen, ts AS last_seen
+           FROM ordered WHERE row_number=1 ORDER BY last_seen DESC, current_stars DESC LIMIT ?""",
+        (min(max(limit, 1), 500),),
+    )
+
+
+@app.get("/api/repositories/{full_name:path}/history")
+def history(full_name: str) -> dict[str, Any]:
+    data = rows(
+        """SELECT ts, stars, forks, pushed_at FROM snapshots WHERE lower(full_name)=lower(?)
+           ORDER BY ts""",
+        (full_name,),
+    )
+    if not data:
+        raise HTTPException(status_code=404, detail="Repository was not observed")
+    summary = rows(
+        """SELECT full_name, html_url, description, stars, language, topics, ts
+           FROM snapshots WHERE lower(full_name)=lower(?) ORDER BY ts DESC LIMIT 1""",
+        (full_name,),
+    )[0]
+    return {"repository": full_name, "summary": summary, "history": data}
+
+
+@app.get("/api/watchlist")
+def watchlist() -> list[dict[str, Any]]:
+    try:
+        entries = rows(
+            """SELECT w.full_name, w.added_at, w.expires_at, w.reason, w.pinned, w.last_seen_at,
+                      s.stars, s.html_url, s.description
+               FROM watchlist_candidates AS w
+               LEFT JOIN snapshots AS s ON s.full_name=w.full_name
+                 AND s.ts=(SELECT max(ts) FROM snapshots WHERE full_name=w.full_name)
+               ORDER BY w.pinned DESC, w.expires_at DESC"""
+        )
+    except sqlite3.OperationalError:
+        entries = []
+    existing = {entry["full_name"].lower() for entry in entries}
+    for name in manual_pins():
+        if name.lower() not in existing:
+            entries.append({"full_name": name, "reason": "manual_pin", "pinned": 1})
+    manual = {name.lower() for name in manual_pins()}
+    for entry in entries:
+        entry["manual"] = entry["full_name"].lower() in manual
+    return entries
+
+
+@app.get("/api/manual-watchlist")
+def get_manual_watchlist() -> dict[str, list[str]]:
+    return {"repositories": manual_pins()}
+
+
+@app.post("/api/manual-watchlist", status_code=201)
+def add_manual_watchlist(request: PinRequest) -> dict[str, list[str]]:
+    full_name = request.full_name.strip().lower()
+    if not REPOSITORY_NAME.fullmatch(full_name):
+        raise HTTPException(status_code=422, detail="Expected owner/repository")
+    values = manual_pins()
+    if full_name not in values:
+        values.append(full_name)
+        save_manual_pins(values)
+    return {"repositories": manual_pins()}
+
+
+@app.delete("/api/manual-watchlist/{full_name:path}")
+def remove_manual_watchlist(full_name: str) -> dict[str, list[str]]:
+    full_name = full_name.lower()
+    if not REPOSITORY_NAME.fullmatch(full_name):
+        raise HTTPException(status_code=422, detail="Expected owner/repository")
+    save_manual_pins([name for name in manual_pins() if name.lower() != full_name.lower()])
+    return {"repositories": manual_pins()}
+
+
+@app.get("/")
+def index() -> FileResponse:
+    return FileResponse(STATIC / "index.html")

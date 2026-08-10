@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  collector:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: collector
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run pytest
+
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run pytest
+      - run: node --check app/static/app.js
+
+  deployment-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration without production data
+        run: |
+          mkdir -p /tmp/ai-oss-radar-ci-data/manual-watchlist
+          cp deploy/.env.example deploy/.env
+          sed -i 's|/var/lib/ai-oss-radar|/tmp/ai-oss-radar-ci-data|' deploy/.env
+          docker compose --env-file deploy/.env -f deploy/docker-compose.collector.yml config
+          docker compose --env-file deploy/.env -f deploy/docker-compose.dashboard.yml config

@@ -1,0 +1,13 @@
+services:
+  dashboard:
+    build: .
+    image: ai-oss-radar-dashboard:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8096:8080"
+    volumes:
+      - /root/ai-oss-radar/data:/data:ro
+      - /root/ai-oss-radar/data/manual-watchlist:/control
+    environment:
+      RADAR_DB: /data/radar.db
+      MANUAL_WATCHLIST: /control/pins.json

@@ -1,0 +1,13 @@
+services:
+  collector:
+    build:
+      context: ../collector
+    image: ai-oss-radar-product-collector:local
+    env_file:
+      - path: ../collector/.env
+        required: false
+    volumes:
+      - ${RADAR_DATA_DIR:?Set RADAR_DATA_DIR to an external runtime directory}:/data
+    working_dir: /app
+    command: ["run", "--db", "/data/radar.db", "--reports-dir", "/data/reports", "--delivery-mode", "stdout"]
+    restart: "no"

@@ -1,0 +1,3 @@
+# Repositories remain observable even if they fall out of a daily search result.
+# Add owner/name entries after the first collection when a candidate deserves tracking.
+repositories: []

@@ -1,0 +1,21 @@
+# Runtime data and access credentials
+data/
+*.db
+*.db-shm
+*.db-wal
+reports/
+pins.json
+.env
+.env.*
+!*.env.example
+
+# Python tooling
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+
+# OS/editor
+.DS_Store
+.vscode/

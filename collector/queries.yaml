@@ -1,0 +1,15 @@
+search_queries:
+  - 'topic:ai-agent stars:>100'
+  - 'topic:llm stars:>100'
+  - 'topic:mcp stars:>50'
+  - 'topic:rag stars:>100'
+  - 'topic:local-llm stars:>100'
+  - '"coding agent" in:name,description,readme stars:>100'
+  - '"agent skills" in:name,description,readme stars:>50'
+  - '"context engineering" in:name,description,readme stars:>50'
+  - '"computer use" in:name,description,readme stars:>50'
+  - '"browser agent" in:name,description,readme stars:>50'
+  - 'created:>2026-01-01 stars:>500 ai in:name,description,readme'
+trending_scopes: [all, python, typescript, rust]
+# Scheduler runs are allowed to drift this much and still form a measured window.
+snapshot_tolerance_hours: 3
