@@ -118,3 +118,18 @@ def test_manual_watchlist_can_pin_and_unpin_without_writing_radar_db(tmp_path, m
     )
     assert client.delete("/api/manual-watchlist/owner/project").json() == {"repositories": []}
     assert control.exists()
+
+
+def test_chartjs_history_contract_is_vendored_and_interactive():
+    static = Path(__file__).parents[1] / "app" / "static"
+    index = (static / "index.html").read_text()
+    source = (static / "app.js").read_text()
+    vendor = static / "vendor" / "chart.umd.min.js"
+    manifest = (static / "vendor" / "README.md").read_text()
+    assert '/static/vendor/chart.umd.min.js' in index
+    assert vendor.exists() and vendor.stat().st_size > 100_000
+    assert 'Pinned release:** `4.5.1`' in manifest
+    assert 'interaction: { mode: \'index\', intersect: false, axis: \'x\' }' in source
+    assert 'afterDatasetsDraw(chart)' in source
+    assert 'onClick: (_, elements)' in source
+    assert 'dailyChange' in source
