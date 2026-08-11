@@ -277,7 +277,7 @@ async function load() {
     const accelerated = state.repos.filter(x => x.trend_state === 'ACCELERATING').length;
     const soon = watch.filter(x => { const remaining = new Date(x.expires_at) - Date.now(); return !x.manual && remaining >= 0 && remaining < 3 * 864e5; }).length;
     document.querySelector('#status').textContent = `${t('status')} ${new Date(health.latest_snapshot).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US')} · ${t('schedule')}`;
-    document.querySelector('#repos').textContent = fmt(state.repos.length); document.querySelector('#accelerating').textContent = fmt(accelerated); document.querySelector('#watchcount').textContent = fmt(watch.length); document.querySelector('#pincount').textContent = fmt(state.pins.length); document.querySelector('#expiring').textContent = soon ? `${t('urgent')} ${soon}` : t('noUrgent');
+    document.querySelector('#repos').textContent = fmt(state.repos.length); document.querySelector('#accelerating').textContent = fmt(accelerated); document.querySelector('#watchcount').textContent = fmt(watch.length); document.querySelector('#pincount').textContent = fmt(state.pins.length); document.querySelector('#expiring').textContent = soon ? `${t('urgent')} ${soon}` : ''; document.querySelector('#expiring').hidden = !soon;
     renderCandidates(); renderWatch(); renderPinned();
     if (initialHistoryRepo) { const repo = initialHistoryRepo; initialHistoryRepo = null; await showHistory(repo); }
   } catch (error) { document.querySelector('#status').textContent = `${t('fault')}: ${error.message}`; }
