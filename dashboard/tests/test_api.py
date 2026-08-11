@@ -185,23 +185,21 @@ def test_pinned_cards_and_watchlist_rows_link_to_history_details():
     assert "showHistory(card.dataset.repo)" in source
 
 
-def test_history_tab_has_direct_catalogue_and_deep_links():
+def test_panel_first_navigation_has_contextual_history_routes():
     static = Path(__file__).parents[1] / "app" / "static"
     index = (static / "index.html").read_text()
     source = (static / "app.js").read_text()
-    assert 'id="history-catalog"' in index
-    assert 'id="history-top-list"' in index
-    assert 'id="history-pinned-list"' in index
-    assert 'id="history-watch-list"' in index
-    assert 'historyWatch' in source
-    assert 'const watched = state.watch.filter(item => !item.manual);' in source
-    assert "document.querySelector('#history-watch-section').hidden = !watched.length;" in source
-    assert 'function renderHistoryCatalogue()' in source
-    assert 'function showHistoryCatalogue(updateLocation = true)' in source
-    assert '`#history?repo=${encodeURIComponent(repo)}`' in source
-    assert 'window.history.replaceState(null, \'\', `#history?repo=${encodeURIComponent(repo)}`)' in source
+    assert 'class="tabs"' not in index
+    assert 'data-metric="pinned"' in index
+    assert 'id="pincount"' in index
+    assert "historyReturnView" in source
+    assert "from=${encodeURIComponent(historyReturnView)}" in source
+    assert "selectMetric(historyReturnView)" in source
+    assert "rawInitialView" in source
+    assert "candidateScope = initialView" in source
+    assert "initialParams.get('from')" in source
+    assert "document.querySelectorAll('.tab')" not in source
     assert 'const snapshots = payload.history;' in source
-    assert "new URLSearchParams(initialQuery).get('repo')" in source
 
 
 

@@ -2,6 +2,7 @@ const state = { repos: [], all: [], watch: [], pins: [] };
 let historyChart = null;
 let activeHistoryRepo = null;
 let historyRequest = 0;
+let historyReturnView = 'candidates';
 let candidateScope = 'top';
 let watchSort = ['default', 'stars-desc', 'stars-asc'].includes(localStorage.getItem('radar-watch-sort')) ? localStorage.getItem('radar-watch-sort') : 'default';
 const translations = {
@@ -54,9 +55,10 @@ async function api(url, options) {
 }
 
 function setView(name, updateLocation = true) {
-  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.view === name));
   document.querySelectorAll('.view').forEach(x => x.classList.toggle('active', x.id === `${name}-view`));
-  if (updateLocation) history.replaceState(null, '', `#${name}`);
+  document.querySelectorAll('[data-metric]').forEach(x => x.classList.toggle('active', x.dataset.metric === (name === 'candidates' ? candidateScope : name)));
+  if (name !== 'history') historyReturnView = name === 'candidates' ? candidateScope : name;
+  if (updateLocation) history.replaceState(null, '', `#${name === 'candidates' ? candidateScope : name}`);
 }
 
 function pinButton(name) {
@@ -74,7 +76,7 @@ function renderCandidates() {
 }
 
 function selectMetric(metric) {
-  if (metric === 'watch') { setView('watch'); renderWatch(); return; }
+  if (metric === 'watch' || metric === 'pinned') { setView(metric); metric === 'watch' ? renderWatch() : renderPinned(); return; }
   candidateScope = metric === 'accelerating' ? 'accelerating' : 'top';
   document.querySelector('#filter').value = '';
   setView('candidates');
@@ -159,7 +161,7 @@ async function showHistory(repo) {
   document.querySelector('#history-catalog').hidden = true;
   document.querySelector('#history-detail').hidden = false;
   setView('history', false);
-  window.history.replaceState(null, '', `#history?repo=${encodeURIComponent(repo)}`);
+  window.history.replaceState(null, '', `#history?repo=${encodeURIComponent(repo)}&from=${encodeURIComponent(historyReturnView)}`);
   const payload = await api(`/api/repositories/${encodeURIComponent(repo)}/history`);
   if (requestId !== historyRequest || activeHistoryRepo !== repo) return;
   const item = payload.summary;
@@ -259,7 +261,7 @@ async function showHistory(repo) {
   document.querySelector('#history-summary').innerHTML = `<div><p class="eyebrow">${t('projectHistory')}</p><h2>${esc(item.full_name)}</h2><p>${esc(item.description || t('noDescription'))}</p><p id="history-note" class="history-note"></p><div class="tags"><span>${esc(item.language || '—')}</span><span>${fmt(item.stars)} stars</span><span>${t('lastSnapshot')} ${date(item.ts)}</span></div></div><div class="history-actions"><button class="history-back" data-history-back>${t('historyBack')}</button><a href="${esc(github(item))}" target="_blank" rel="noreferrer noopener">${t('openGithub')}</a>${pinButton(item.full_name)}</div>`;
   document.querySelector('#history-note').textContent = `${snapshots.length} ${t('observations')} · ${date(snapshots[0].ts)} — ${date(snapshots.at(-1).ts)}`;
   bindInteractiveCards('#history-summary');
-  document.querySelector('[data-history-back]').onclick = () => showHistoryCatalogue();
+  document.querySelector('[data-history-back]').onclick = () => selectMetric(historyReturnView);
   setView('history', false);
 }
 
@@ -275,16 +277,14 @@ async function load() {
     const accelerated = state.repos.filter(x => x.trend_state === 'ACCELERATING').length;
     const soon = watch.filter(x => { const remaining = new Date(x.expires_at) - Date.now(); return !x.manual && remaining >= 0 && remaining < 3 * 864e5; }).length;
     document.querySelector('#status').textContent = `${t('status')} ${new Date(health.latest_snapshot).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US')} · ${t('schedule')}`;
-    document.querySelector('#repos').textContent = fmt(state.repos.length); document.querySelector('#accelerating').textContent = fmt(accelerated); document.querySelector('#watchcount').textContent = fmt(watch.length); document.querySelector('#expiring').textContent = soon ? `${t('urgent')} ${soon}` : t('noUrgent');
+    document.querySelector('#repos').textContent = fmt(state.repos.length); document.querySelector('#accelerating').textContent = fmt(accelerated); document.querySelector('#watchcount').textContent = fmt(watch.length); document.querySelector('#pincount').textContent = fmt(state.pins.length); document.querySelector('#expiring').textContent = soon ? `${t('urgent')} ${soon}` : t('noUrgent');
     renderCandidates(); renderWatch(); renderPinned();
     if (initialHistoryRepo) { const repo = initialHistoryRepo; initialHistoryRepo = null; await showHistory(repo); }
-    else if (initialView === 'history' && !activeHistoryRepo) showHistoryCatalogue(false);
   } catch (error) { document.querySelector('#status').textContent = `${t('fault')}: ${error.message}`; }
 }
 
 document.querySelector('#filter').oninput = renderCandidates;
 document.querySelector('#pin-form').onsubmit = async event => { event.preventDefault(); const input = document.querySelector('#pin-input'); try { await togglePin(input.value.trim()); input.value = ''; } catch (error) { document.querySelector('#pin-status').textContent = `${t('fault')}: ${error.message}`; } };
-document.querySelectorAll('.tab').forEach(tab => tab.onclick = () => { if (tab.dataset.view === 'history') { showHistoryCatalogue(); load(); return; } if (tab.dataset.view === 'candidates') candidateScope = 'top'; setView(tab.dataset.view); load(); });
 document.querySelectorAll('[data-metric]').forEach(metric => metric.onclick = () => selectMetric(metric.dataset.metric));
 document.querySelectorAll('[data-watch-sort]').forEach(button => button.onclick = () => selectWatchSort(button.dataset.watchSort));
 document.querySelectorAll('.language-button').forEach(button => button.onclick = () => { language = button.dataset.language; localStorage.setItem('radar-language', language); applyLanguage(); applyTheme(); load(); });
@@ -293,9 +293,21 @@ systemTheme.addEventListener('change', () => { if (theme === 'system') applyThem
 let pullStart = 0;
 document.addEventListener('touchstart', event => { if (window.scrollY === 0) pullStart = event.touches[0].clientY; }, { passive: true });
 document.addEventListener('touchend', event => { if (pullStart && event.changedTouches[0].clientY - pullStart > 80) load(); pullStart = 0; }, { passive: true });
-const [initialView, initialQuery = ''] = location.hash.slice(1).split('?');
-let initialHistoryRepo = initialView === 'history' ? new URLSearchParams(initialQuery).get('repo') : null;
-if (['candidates', 'watch', 'pinned', 'history'].includes(initialView)) setView(initialView, false);
+const [rawInitialView, initialQuery = ''] = location.hash.slice(1).split('?');
+const initialView = ({ candidates: 'top', watch: 'watch', pinned: 'pinned' }[rawInitialView] || rawInitialView || 'top');
+const initialParams = new URLSearchParams(initialQuery);
+let initialHistoryRepo = initialView === 'history' ? initialParams.get('repo') : null;
+if (initialView === 'history') {
+  historyReturnView = ['top', 'accelerating', 'watch', 'pinned'].includes(initialParams.get('from')) ? initialParams.get('from') : 'top';
+  if (!initialHistoryRepo) selectMetric(historyReturnView);
+} else if (initialView === 'top' || initialView === 'accelerating') {
+  candidateScope = initialView;
+  setView('candidates', false);
+} else if (initialView === 'watch' || initialView === 'pinned') {
+  setView(initialView, false);
+} else {
+  setView('candidates', false);
+}
 applyLanguage();
 applyTheme();
 load();
