@@ -65,7 +65,7 @@ function setView(name, updateLocation = true) {
 
 function pinButton(name) {
   const pinned = state.pins.some(x => x.toLowerCase() === name.toLowerCase());
-  return `<button class="pin-toggle" data-pin="${esc(name)}">${t(pinned ? 'pinned' : 'pin')}</button>`;
+  return `<button class="pin-toggle btn btn-outline-info" data-pin="${esc(name)}">${t(pinned ? 'pinned' : 'pin')}</button>`;
 }
 
 function renderCandidates() {
@@ -73,7 +73,7 @@ function renderCandidates() {
   const counted = candidateScope === 'accelerating' ? state.repos.filter(x => x.trend_state === 'ACCELERATING') : state.repos;
   const items = counted.filter(x => x.full_name.toLowerCase().includes(query));
   document.querySelector('#candidate-scope').textContent = `${candidateScope === 'accelerating' ? t('accelerating') : t('topToday')}: ${fmt(counted.length)}`;
-  document.querySelector('#candidates').innerHTML = items.map((x, i) => `<article class="candidate" data-repo="${esc(x.full_name)}"><div class="rank">#${i + 1}</div><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('noDescription'))}</p><div class="tags"><span>${esc(x.category || x.language || t('aiTooling'))}</span><span class="state ${esc(x.trend_state || 'bootstrap').toLowerCase()}">${esc(x.trend_state || 'BOOTSTRAP')}</span></div></div><div class="numbers"><b>${fmt(x.stars)}</b><small>stars</small><strong class="delta">${x.stars_24h == null ? 'N/A' : '+' + fmt(x.stars_24h)}</strong><small>24h</small>${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('noResults')}</p>`;
+  document.querySelector('#candidates').innerHTML = items.map((x, i) => `<article class="candidate card-body" data-repo="${esc(x.full_name)}"><div class="rank">#${i + 1}</div><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('noDescription'))}</p><div class="tags"><span>${esc(x.category || x.language || t('aiTooling'))}</span><span class="state ${esc(x.trend_state || 'bootstrap').toLowerCase()}">${esc(x.trend_state || 'BOOTSTRAP')}</span></div></div><div class="numbers"><b>${fmt(x.stars)}</b><small>stars</small><strong class="delta">${x.stars_24h == null ? 'N/A' : '+' + fmt(x.stars_24h)}</strong><small>24h</small>${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('noResults')}</p>`;
   bindInteractiveCards('#candidates');
 }
 
@@ -111,7 +111,7 @@ function selectWatchSort(sort) {
 function renderPinned() {
   const indexed = new Map(state.watch.map(x => [x.full_name.toLowerCase(), x]));
   const items = state.pins.map(name => indexed.get(name.toLowerCase()) || { full_name: name, manual: true });
-  document.querySelector('#pinned-list').innerHTML = items.map(x => `<article class="candidate pinned-card" data-repo="${esc(x.full_name)}"><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('pendingSnapshot'))}</p><div class="tags"><span>${t('manualPin')}</span><span>${x.stars == null ? t('snapshotWaiting') : `${fmt(x.stars)} stars`}</span></div></div><div class="numbers">${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('pinnedEmpty')}</p>`;
+  document.querySelector('#pinned-list').innerHTML = items.map(x => `<article class="candidate pinned-card card-body" data-repo="${esc(x.full_name)}"><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('pendingSnapshot'))}</p><div class="tags"><span>${t('manualPin')}</span><span>${x.stars == null ? t('snapshotWaiting') : `${fmt(x.stars)} stars`}</span></div></div><div class="numbers">${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('pinnedEmpty')}</p>`;
   bindInteractiveCards('#pinned-list');
 }
 
@@ -129,7 +129,7 @@ async function togglePin(fullName) {
 
 function historyChoice(item) {
   const ready = item.stars != null;
-  return `<button class="history-choice" data-history-repo="${esc(item.full_name)}"${ready ? '' : ' disabled'}><strong>${esc(item.full_name)}</strong><span>${ready ? `${fmt(item.stars)} stars` : t('snapshotWaiting')}</span></button>`;
+  return `<button class="history-choice btn btn-outline-info" data-history-repo="${esc(item.full_name)}"${ready ? '' : ' disabled'}><strong>${esc(item.full_name)}</strong><span>${ready ? `${fmt(item.stars)} stars` : t('snapshotWaiting')}</span></button>`;
 }
 
 function renderHistoryCatalogue() {
