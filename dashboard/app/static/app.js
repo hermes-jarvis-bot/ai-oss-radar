@@ -1,6 +1,7 @@
 const state = { repos: [], all: [], watch: [], pins: [] };
 let historyChart = null;
 let activeHistoryRepo = null;
+let historyRequest = 0;
 let candidateScope = 'top';
 let watchSort = ['default', 'stars-desc', 'stars-asc'].includes(localStorage.getItem('radar-watch-sort')) ? localStorage.getItem('radar-watch-sort') : 'default';
 const translations = {
@@ -141,6 +142,7 @@ function renderHistoryCatalogue() {
 }
 
 function showHistoryCatalogue(updateLocation = true) {
+  historyRequest += 1;
   activeHistoryRepo = null;
   if (historyChart) { historyChart.destroy(); historyChart = null; }
   document.querySelector('#chart').innerHTML = '';
@@ -152,12 +154,14 @@ function showHistoryCatalogue(updateLocation = true) {
 }
 
 async function showHistory(repo) {
+  const requestId = ++historyRequest;
   activeHistoryRepo = repo;
   document.querySelector('#history-catalog').hidden = true;
   document.querySelector('#history-detail').hidden = false;
   setView('history', false);
   window.history.replaceState(null, '', `#history?repo=${encodeURIComponent(repo)}`);
   const payload = await api(`/api/repositories/${encodeURIComponent(repo)}/history`);
+  if (requestId !== historyRequest || activeHistoryRepo !== repo) return;
   const item = payload.summary;
   const snapshots = payload.history;
   const values = snapshots.map(x => x.stars);

@@ -204,7 +204,19 @@ def test_history_tab_has_direct_catalogue_and_deep_links():
     assert "new URLSearchParams(initialQuery).get('repo')" in source
 
 
-def test_dashboard_declares_a_local_svg_favicon():
+
+def test_review_regression_guards_are_present():
+    root = Path(__file__).parents[1]
+    api_source = (root / "app" / "main.py").read_text()
+    client_source = (root / "app" / "static" / "app.js").read_text()
+    runner_source = (root.parent / "scripts" / "refresh-runner.py").read_text()
+    assert "with manual_pins_lock():" in api_source
+    assert "except HTTPError as error:" in api_source
+    assert "historyRequest" in client_source
+    assert "requestId !== historyRequest" in client_source
+    assert "LOG_RETENTION" in runner_source
+    assert "request.settimeout(5)" in runner_source
+
     static = Path(__file__).parents[1] / "app" / "static"
     assert 'rel="icon" href="/static/favicon.svg" type="image/svg+xml"' in (static / "index.html").read_text()
     assert '<svg' in (static / "favicon.svg").read_text()

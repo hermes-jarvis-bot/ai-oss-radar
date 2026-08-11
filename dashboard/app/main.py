@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import fcntl
 import hmac
 import json
 import os
 import re
 import sqlite3
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from fastapi import FastAPI, Header, HTTPException
@@ -46,13 +49,27 @@ def manual_pins() -> list[str]:
     )
 
 
+@contextmanager
+def manual_pins_lock() -> Any:
+    CONTROL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = CONTROL_PATH.with_suffix(".lock")
+    with lock_path.open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
 def save_manual_pins(values: list[str]) -> None:
     CONTROL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    temporary = CONTROL_PATH.with_suffix(".json.tmp")
-    temporary.write_text(
-        json.dumps({"repositories": sorted(set(values))}, indent=2) + "\n", encoding="utf-8"
-    )
-    os.replace(temporary, CONTROL_PATH)
+    with tempfile.NamedTemporaryFile(
+        mode="w", dir=CONTROL_PATH.parent, prefix=f".{CONTROL_PATH.name}.", delete=False, encoding="utf-8"
+    ) as temporary:
+        temporary.write(json.dumps({"repositories": sorted(set(values))}, indent=2) + "\n")
+        temporary.flush()
+        os.fsync(temporary.fileno())
+    os.replace(temporary.name, CONTROL_PATH)
 
 
 def db() -> sqlite3.Connection:
@@ -164,16 +181,21 @@ def watchlist() -> list[dict[str, Any]]:
     except sqlite3.OperationalError:
         entries = []
     existing = {entry["full_name"].lower() for entry in entries}
-    for name in manual_pins():
-        if name.lower() not in existing:
-            snapshot = rows(
-                """SELECT stars, html_url, description FROM snapshots
-                   WHERE lower(full_name)=lower(?) ORDER BY ts DESC LIMIT 1""",
-                (name,),
-            )
-            entries.append(
-                {"full_name": name, "reason": "manual_pin", "pinned": 1, **(snapshot[0] if snapshot else {})}
-            )
+    missing = [name for name in manual_pins() if name.lower() not in existing]
+    snapshots: dict[str, dict[str, Any]] = {}
+    if missing:
+        placeholders = ",".join("?" for _ in missing)
+        snapshot_rows = rows(
+            f"""SELECT s.full_name, s.stars, s.html_url, s.description FROM snapshots AS s
+                WHERE lower(s.full_name) IN ({placeholders})
+                  AND s.ts=(SELECT max(ts) FROM snapshots WHERE lower(full_name)=lower(s.full_name))""",
+            tuple(name.lower() for name in missing),
+        )
+        snapshots = {snapshot["full_name"].lower(): snapshot for snapshot in snapshot_rows}
+    for name in missing:
+        entries.append(
+            {"full_name": name, "reason": "manual_pin", "pinned": 1, **snapshots.get(name.lower(), {})}
+        )
     manual = {name.lower() for name in manual_pins()}
     for entry in entries:
         entry["manual"] = entry["full_name"].lower() in manual
@@ -190,11 +212,12 @@ def add_manual_watchlist(request: PinRequest) -> dict[str, list[str]]:
     full_name = request.full_name.strip().lower()
     if not REPOSITORY_NAME.fullmatch(full_name):
         raise HTTPException(status_code=422, detail="Expected owner/repository")
-    values = manual_pins()
-    if full_name not in values:
-        values.append(full_name)
-        save_manual_pins(values)
-    return {"repositories": manual_pins()}
+    with manual_pins_lock():
+        values = manual_pins()
+        if full_name not in values:
+            values.append(full_name)
+            save_manual_pins(values)
+        return {"repositories": manual_pins()}
 
 
 @app.delete("/api/manual-watchlist/{full_name:path}")
@@ -202,8 +225,9 @@ def remove_manual_watchlist(full_name: str) -> dict[str, list[str]]:
     full_name = full_name.lower()
     if not REPOSITORY_NAME.fullmatch(full_name):
         raise HTTPException(status_code=422, detail="Expected owner/repository")
-    save_manual_pins([name for name in manual_pins() if name.lower() != full_name.lower()])
-    return {"repositories": manual_pins()}
+    with manual_pins_lock():
+        save_manual_pins([name for name in manual_pins() if name.lower() != full_name.lower()])
+        return {"repositories": manual_pins()}
 
 def refresh_authorised(token: str | None) -> None:
     if not REFRESH_TOKEN or not token or not hmac.compare_digest(token, REFRESH_TOKEN):
@@ -211,11 +235,21 @@ def refresh_authorised(token: str | None) -> None:
 
 
 def runner_request(path: str) -> dict[str, Any]:
-    request = Request(f"{REFRESH_RUNNER_URL}{path}", method="POST" if path == "/run" else "GET", headers={"X-Radar-Refresh-Token": REFRESH_TOKEN})
+    request = Request(
+        f"{REFRESH_RUNNER_URL}{path}",
+        method="POST" if path == "/run" else "GET",
+        headers={"X-Radar-Refresh-Token": REFRESH_TOKEN},
+    )
     try:
         with urlopen(request, timeout=5) as response:
             return json.loads(response.read())
-    except URLError as error:
+    except HTTPError as error:
+        try:
+            detail = json.loads(error.read())
+        except json.JSONDecodeError:
+            detail = {"detail": "Refresh runner returned an invalid response"}
+        raise HTTPException(status_code=error.code, detail=detail) from error
+    except (URLError, json.JSONDecodeError) as error:
         raise HTTPException(status_code=503, detail="Refresh runner is unavailable") from error
 
 

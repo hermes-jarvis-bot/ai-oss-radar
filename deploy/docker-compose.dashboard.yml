@@ -13,8 +13,21 @@ services:
       - path: ${REFRESH_ENV_FILE:-../dashboard/.refresh.env}
         required: false
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:172.28.240.1"
     environment:
       RADAR_DB: /data/radar.db
       MANUAL_WATCHLIST: /control/pins.json
       RADAR_REFRESH_RUNNER_URL: http://host.docker.internal:8097
+    networks:
+      refresh-private:
+        ipv4_address: 172.28.240.2
+
+networks:
+  refresh-private:
+    name: ai-oss-radar-refresh-private
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: radar-refresh0
+    ipam:
+      config:
+        - subnet: 172.28.240.0/29
