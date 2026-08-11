@@ -166,7 +166,14 @@ def watchlist() -> list[dict[str, Any]]:
     existing = {entry["full_name"].lower() for entry in entries}
     for name in manual_pins():
         if name.lower() not in existing:
-            entries.append({"full_name": name, "reason": "manual_pin", "pinned": 1})
+            snapshot = rows(
+                """SELECT stars, html_url, description FROM snapshots
+                   WHERE lower(full_name)=lower(?) ORDER BY ts DESC LIMIT 1""",
+                (name,),
+            )
+            entries.append(
+                {"full_name": name, "reason": "manual_pin", "pinned": 1, **(snapshot[0] if snapshot else {})}
+            )
     manual = {name.lower() for name in manual_pins()}
     for entry in entries:
         entry["manual"] = entry["full_name"].lower() in manual

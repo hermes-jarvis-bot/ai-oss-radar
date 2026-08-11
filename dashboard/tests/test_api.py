@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from pathlib import Path
 
@@ -99,6 +100,22 @@ def test_mobile_empty_and_expiry_guards_are_present():
     assert "remaining >= 0 && remaining < 3 * 864e5" in source
     assert "item.html_url || item.url" in source
     assert "Потяните страницу вниз" in (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
+
+
+def test_manual_pin_without_candidate_inherits_latest_snapshot(tmp_path, monkeypatch):
+    path = tmp_path / "radar.db"
+    control = tmp_path / "control" / "pins.json"
+    seed(path)
+    with sqlite3.connect(path) as conn:
+        conn.execute("DELETE FROM watchlist_candidates")
+    control.parent.mkdir()
+    control.write_text(json.dumps({"repositories": ["demo/agent"]}))
+    monkeypatch.setattr(main, "DB_PATH", str(path))
+    monkeypatch.setattr(main, "CONTROL_PATH", control)
+    entry = TestClient(main.app).get("/api/watchlist").json()[0]
+    assert entry["manual"] is True
+    assert entry["description"] == "demo"
+    assert entry["stars"] == 100
 
 
 def test_manual_watchlist_can_pin_and_unpin_without_writing_radar_db(tmp_path, monkeypatch):
