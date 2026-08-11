@@ -17,7 +17,9 @@ const systemTheme = window.matchMedia('(prefers-color-scheme: light)');
 const t = key => translations[language][key] || key;
 const fmt = n => n == null ? 'N/A' : new Intl.NumberFormat(language === 'ru' ? 'ru-RU' : 'en-US').format(n);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const date = value => value ? new Date(value).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-US') : '—';
+const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const localFormat = options => new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { timeZone: browserTimeZone, ...options });
+const date = value => value ? localFormat({ dateStyle: 'short' }).format(new Date(value)) : '—';
 const github = item => item.html_url || item.url || `https://github.com/${item.full_name || item.repo}`;
 
 function applyLanguage() {
@@ -168,7 +170,7 @@ async function showHistory(repo) {
   const snapshots = payload.history;
   const values = snapshots.map(x => x.stars);
   const labels = snapshots.map(x => date(x.ts));
-  const tooltipDate = value => new Date(value).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US');
+  const tooltipDate = value => localFormat({ dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
   const css = getComputedStyle(document.documentElement);
   const accent = css.getPropertyValue('--accent').trim();
   const muted = css.getPropertyValue('--muted').trim();
@@ -259,7 +261,7 @@ async function showHistory(repo) {
     plugins: [latestLabel],
   });
   document.querySelector('#history-summary').innerHTML = `<div><p class="eyebrow">${t('projectHistory')}</p><h2>${esc(item.full_name)}</h2><p>${esc(item.description || t('noDescription'))}</p><p id="history-note" class="history-note"></p><div class="tags"><span>${esc(item.language || '—')}</span><span>${fmt(item.stars)} stars</span><span>${t('lastSnapshot')} ${date(item.ts)}</span></div></div><div class="history-actions"><button class="history-back" data-history-back>${t('historyBack')}</button><a href="${esc(github(item))}" target="_blank" rel="noreferrer noopener">${t('openGithub')}</a>${pinButton(item.full_name)}</div>`;
-  document.querySelector('#history-note').textContent = `${snapshots.length} ${t('observations')} · ${date(snapshots[0].ts)} — ${date(snapshots.at(-1).ts)}`;
+  document.querySelector('#history-note').textContent = `${snapshots.length} ${t('observations')} · ${date(snapshots[0].ts)} — ${date(snapshots.at(-1).ts)} · ${browserTimeZone}`;
   bindInteractiveCards('#history-summary');
   document.querySelector('[data-history-back]').onclick = () => selectMetric(historyReturnView);
   setView('history', false);

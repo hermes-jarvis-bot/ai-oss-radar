@@ -9,6 +9,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 import yaml
@@ -253,6 +254,10 @@ def discover_watchlist(names: list[str]) -> dict[str, Repo]:
     with gh_client() as client:
         for name in sorted(set(names)):
             response = client.get(f"/repos/{name}")
+            if response.is_redirect:
+                location = urlparse(response.headers.get("location", ""))
+                if location.netloc == "api.github.com" and location.path.startswith("/repositories/"):
+                    response = client.get(location.path + (f"?{location.query}" if location.query else ""))
             if response.status_code == 404:
                 continue
             response.raise_for_status()

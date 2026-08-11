@@ -9,6 +9,7 @@ from ai_oss_radar.core import (
     acceleration_state,
     active_watchlist,
     connect,
+    gh_client,
     load_manual_watchlist,
     parse_trending_html,
     ranked,
@@ -161,6 +162,12 @@ def test_json_markdown_and_under_the_radar(tmp_path):
     assert markdown.exists() and report_json.exists()
     assert under_the_radar([item])[0]["repo"] == "small/viral"
 
+
+
+def test_github_client_handles_redirects_explicitly(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+    with gh_client() as client:
+        assert client.follow_redirects is False
 
 def test_dynamic_watchlist_retains_trending_candidates_for_14_days(tmp_path):
     conn = connect(str(tmp_path / "radar.db"))
