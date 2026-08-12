@@ -196,6 +196,13 @@ def test_pin_toggle_uses_theme_native_bootstrap_button_variables():
     assert '--bs-btn-hover-bg:color-mix(in srgb,var(--radar-accent) 14%,var(--radar-panel))' in styles
 
 
+def test_initial_document_applies_theme_before_stylesheets_load():
+    index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
+    assert '<html lang="ru" data-theme="light" data-bs-theme="light">' in index
+    assert 'document.documentElement.dataset.bsTheme = active;' in index
+    assert index.index('document.documentElement.dataset.bsTheme = active;') < index.index('/static/vendor/bootstrap/bootstrap.min.css')
+
+
 def test_index_disables_stale_browser_document_cache():
     client = TestClient(main.app)
     assert client.get("/").headers["cache-control"] == "no-store"
