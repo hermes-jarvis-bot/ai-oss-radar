@@ -185,7 +185,8 @@ def test_watchlist_rows_use_human_reason_labels_and_descriptions():
     assert "github_trending_7d: t('watchTrending7d')" in source
     assert "top_ranked: t('watchTopRanked')" in source
     assert "${esc(x.description || t('noDescription'))}" in source
-    assert "${watchReason(x)}" in source
+    assert '${watchReason(x)}' in source
+    assert 'badge text-bg-secondary rounded-pill mt-1' in source
 
 
 def test_pinned_cards_and_watchlist_rows_link_to_history_details():
