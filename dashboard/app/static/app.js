@@ -42,6 +42,7 @@ function effectiveTheme() { return theme === 'system' ? (systemTheme.matches ? '
 function applyTheme() {
   const active = effectiveTheme();
   document.documentElement.dataset.theme = active;
+  document.documentElement.dataset.bsTheme = active;
   const button = document.querySelector('#theme-toggle');
   button.textContent = theme === 'system' ? 'A' : (active === 'dark' ? '☾' : '☀︎');
   const stateName = language === 'ru' ? ({ system: 'авто', light: 'светлая', dark: 'тёмная' }[theme]) : ({ system: 'auto', light: 'light', dark: 'dark' }[theme]);
