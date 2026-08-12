@@ -189,6 +189,13 @@ def test_watchlist_rows_use_human_reason_labels_and_descriptions():
     assert 'badge text-bg-secondary rounded-pill mt-1' in source
 
 
+def test_pin_toggle_uses_theme_native_bootstrap_button_variables():
+    styles = (Path(__file__).parents[1] / "app" / "static" / "style.css").read_text()
+    assert '.pin-toggle{--bs-btn-color:var(--radar-muted)' in styles
+    assert '--bs-btn-border-color:var(--radar-line)' in styles
+    assert '--bs-btn-hover-bg:color-mix(in srgb,var(--radar-accent) 14%,var(--radar-panel))' in styles
+
+
 def test_pinned_cards_and_watchlist_rows_link_to_history_details():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert 'class="radar-row list-group-item d-flex justify-content-between gap-2" data-repo="${esc(x.full_name)}"' in source
