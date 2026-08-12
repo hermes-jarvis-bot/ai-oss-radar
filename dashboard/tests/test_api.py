@@ -201,6 +201,9 @@ def test_initial_document_applies_theme_before_stylesheets_load():
     assert '<html lang="ru" data-theme="light" data-bs-theme="light">' in index
     assert 'document.documentElement.dataset.bsTheme = active;' in index
     assert index.index('document.documentElement.dataset.bsTheme = active;') < index.index('/static/vendor/bootstrap/bootstrap.min.css')
+    assert '<style id="light-theme-safety">' in index
+    assert '--radar-panel:#fff!important' in index
+    assert '--panel:#fff!important' in index
 
 
 def test_index_disables_stale_browser_document_cache():
