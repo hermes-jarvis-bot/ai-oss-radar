@@ -178,6 +178,16 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert 'btn-group btn-group-sm' in index
 
 
+def test_watchlist_rows_use_human_reason_labels_and_descriptions():
+    source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
+    assert "function watchReason(item)" in source
+    assert "github_trending_24h: t('watchTrending24h')" in source
+    assert "github_trending_7d: t('watchTrending7d')" in source
+    assert "top_ranked: t('watchTopRanked')" in source
+    assert "${esc(x.description || t('noDescription'))}" in source
+    assert "${watchReason(x)}" in source
+
+
 def test_pinned_cards_and_watchlist_rows_link_to_history_details():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert 'class="radar-row list-group-item d-flex justify-content-between gap-2" data-repo="${esc(x.full_name)}"' in source
