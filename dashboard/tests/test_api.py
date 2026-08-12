@@ -210,8 +210,8 @@ def test_index_disables_stale_browser_document_cache():
 
 def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
     index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
-    assert '/static/style.css?v=20260812-themefix2' in index
-    assert '/static/app.js?v=20260812-themefix2' in index
+    assert 'style.css?v=20260812-private-theme-v3' in index
+    assert 'app.js?v=20260812-private-theme-v3' in index
 
 
 def test_theme_syncs_bootstrap_color_mode():

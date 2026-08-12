@@ -6,7 +6,7 @@
   <script>(() => { try { const saved = localStorage.getItem('radar-theme') || 'system'; const dark = matchMedia('(prefers-color-scheme: light)').matches === false; const active = saved === 'system' ? (dark ? 'dark' : 'light') : saved; document.documentElement.dataset.theme = active; document.documentElement.dataset.bsTheme = active; document.querySelector('#theme-color').setAttribute('content', active === 'dark' ? '#07111f' : '#f4f7fb'); } catch (_) { document.documentElement.dataset.theme = 'light'; document.documentElement.dataset.bsTheme = 'light'; } })();</script>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/vendor/bootstrap/bootstrap.min.css?v=5.3.3">
-  <link rel="stylesheet" href="/static/style.css?v=20260812-themefix2">
+  <link rel="stylesheet" href="/static/style.css?v=20260812-private-theme-v3">
 </head>
 <body>
   <header class="app-header container-fluid app-shell py-3 d-flex justify-content-between">
@@ -27,5 +27,5 @@
   </main>
   <footer class="footer container-fluid app-shell py-3" data-i18n="footer">Потяните страницу вниз, чтобы обновить локальные данные. GitHub collection выполняется по расписанию. · SQLite history локальна.</footer>
   <script src="/static/vendor/chart.umd.min.js?v=4.5.1"></script>
-  <script src="/static/app.js?v=20260812-themefix2"></script>
+  <script src="/static/app.js?v=20260812-private-theme-v3"></script>
 </body></html>
