@@ -217,6 +217,22 @@ def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
 def test_theme_syncs_bootstrap_color_mode():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert 'document.documentElement.dataset.bsTheme = active;' in source
+    assert 'document.querySelector(\'#theme-color\').setAttribute(\'content\', active === \'dark\' ? \'#07111f\' : \'#f4f7fb\');' in source
+
+
+def test_private_mode_storage_access_is_safe():
+    source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
+    assert 'const storageGet = key => { try { return window.localStorage.getItem(key); } catch (_) { return null; } };' in source
+    assert 'const storageSet = (key, value) => { try { window.localStorage.setItem(key, value); } catch (_) {} };' in source
+    assert 'localStorage.setItem(' not in source
+
+
+def test_light_theme_defines_chart_palette_aliases_and_light_chrome():
+    index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
+    styles = (Path(__file__).parents[1] / "app" / "static" / "style.css").read_text()
+    assert '<meta id="theme-color" name="theme-color" content="#f4f7fb">' in index
+    assert ':root[data-theme="light"]' in styles
+    assert '--accent:var(--radar-accent);--muted:var(--radar-muted);--line:var(--radar-line);--panel:var(--radar-panel)' in styles
 
 
 def test_manual_pin_add_control_is_not_primary_blue():
