@@ -173,7 +173,7 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert 'data-watch-sort="stars-desc"' in index
     assert 'data-watch-sort="stars-asc"' in index
     assert 'function sortedWatchlist()' in source
-    assert "localStorage.setItem('radar-watch-sort', sort)" in source
+    assert "storageSet('radar-watch-sort', sort)" in source
     assert 'box-shadow:inset 0 0 0 2px var(--radar-accent)' in styles
     assert 'btn-group btn-group-sm' in index
 
@@ -224,7 +224,9 @@ def test_private_mode_storage_access_is_safe():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert 'const storageGet = key => { try { return window.localStorage.getItem(key); } catch (_) { return null; } };' in source
     assert 'const storageSet = (key, value) => { try { window.localStorage.setItem(key, value); } catch (_) {} };' in source
-    assert 'localStorage.setItem(' not in source
+    assert source.count('localStorage.setItem(') == 1
+    assert "storageSet('radar-theme', theme)" in source
+    assert "storageSet('radar-language', language)" in source
 
 
 def test_light_theme_defines_chart_palette_aliases_and_light_chrome():
