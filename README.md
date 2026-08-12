@@ -4,7 +4,7 @@ AI OSS Radar is a local-first product for discovering and tracking fast-moving A
 
 ![AI OSS Radar dashboard — dark and light themes](dashboard/assets/dashboard-en.png)
 
-*One live dashboard view, diagonally split between dark and light modes.*
+*Current live dashboard view, diagonally split between light and dark modes.*
 
 ## Product architecture
 

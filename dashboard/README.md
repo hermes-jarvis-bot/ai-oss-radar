@@ -4,7 +4,7 @@ A mobile-first, local-only dashboard for the **AI OSS Radar** collector. It turn
 
 ![AI OSS Radar Dashboard — dark and light themes](assets/dashboard-en.png)
 
-*One live dashboard view, diagonally split between dark and light modes.*
+*Current live dashboard view, diagonally split between light and dark modes.*
 
 ## Highlights
 
