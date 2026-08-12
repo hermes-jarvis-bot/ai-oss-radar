@@ -196,6 +196,17 @@ def test_pin_toggle_uses_theme_native_bootstrap_button_variables():
     assert '--bs-btn-hover-bg:color-mix(in srgb,var(--radar-accent) 14%,var(--radar-panel))' in styles
 
 
+def test_index_disables_stale_browser_document_cache():
+    client = TestClient(main.app)
+    assert client.get("/").headers["cache-control"] == "no-store"
+
+
+def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
+    index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
+    assert '/static/style.css?v=20260812-themefix2' in index
+    assert '/static/app.js?v=20260812-themefix2' in index
+
+
 def test_theme_syncs_bootstrap_color_mode():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert 'document.documentElement.dataset.bsTheme = active;' in source

@@ -267,4 +267,4 @@ def refresh_status(x_radar_refresh_token: str | None = Header(default=None)) -> 
 
 @app.get("/")
 def index() -> FileResponse:
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})
