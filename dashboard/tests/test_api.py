@@ -174,14 +174,14 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert 'data-watch-sort="stars-asc"' in index
     assert 'function sortedWatchlist()' in source
     assert "localStorage.setItem('radar-watch-sort', sort)" in source
-    assert 'box-shadow:inset 0 0 0 2px var(--accent)' in styles
-    assert 'border-radius:13px' in styles
+    assert 'box-shadow:inset 0 0 0 2px var(--radar-accent)' in styles
+    assert 'btn-group btn-group-sm' in index
 
 
 def test_pinned_cards_and_watchlist_rows_link_to_history_details():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
-    assert '<article data-repo="${esc(x.full_name)}">' in source
-    assert '<article class="candidate pinned-card" data-repo="${esc(x.full_name)}">' in source
+    assert 'class="radar-row list-group-item d-flex justify-content-between gap-2" data-repo="${esc(x.full_name)}"' in source
+    assert 'class="radar-row list-group-item d-grid gap-2" data-repo="${esc(x.full_name)}"' in source
     assert "showHistory(card.dataset.repo)" in source
 
 

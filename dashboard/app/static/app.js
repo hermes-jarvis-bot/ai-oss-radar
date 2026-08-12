@@ -73,7 +73,7 @@ function renderCandidates() {
   const counted = candidateScope === 'accelerating' ? state.repos.filter(x => x.trend_state === 'ACCELERATING') : state.repos;
   const items = counted.filter(x => x.full_name.toLowerCase().includes(query));
   document.querySelector('#candidate-scope').textContent = `${candidateScope === 'accelerating' ? t('accelerating') : t('topToday')}: ${fmt(counted.length)}`;
-  document.querySelector('#candidates').innerHTML = items.map((x, i) => `<article class="candidate card-body" data-repo="${esc(x.full_name)}"><div class="rank">#${i + 1}</div><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('noDescription'))}</p><div class="tags"><span>${esc(x.category || x.language || t('aiTooling'))}</span><span class="state ${esc(x.trend_state || 'bootstrap').toLowerCase()}">${esc(x.trend_state || 'BOOTSTRAP')}</span></div></div><div class="numbers"><b>${fmt(x.stars)}</b><small>stars</small><strong class="delta">${x.stars_24h == null ? 'N/A' : '+' + fmt(x.stars_24h)}</strong><small>24h</small>${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('noResults')}</p>`;
+  document.querySelector('#candidates').innerHTML = items.map((x, i) => `<article class="radar-row list-group-item d-grid gap-2" data-repo="${esc(x.full_name)}"><div class="d-flex gap-2"><span class="text-muted-radar fw-semibold">#${i + 1}</span><div class="flex-grow-1 min-w-0"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p class="mb-2">${esc(x.description || t('noDescription'))}</p><span class="badge badge-radar me-1">${esc(x.category || x.language || t('aiTooling'))}</span><span class="badge badge-radar state-${esc(x.trend_state || 'bootstrap').toLowerCase()}">${esc(x.trend_state || 'BOOTSTRAP')}</span></div><div class="text-end"><strong class="d-block">${fmt(x.stars)}</strong><small class="text-muted-radar d-block">stars</small><strong class="text-success d-block">${x.stars_24h == null ? 'N/A' : '+' + fmt(x.stars_24h)}</strong><small class="text-muted-radar d-block">24h</small></div></div>${pinButton(x.full_name)}</article>`).join('') || `<p class="text-muted-radar p-3 mb-0">${t('noResults')}</p>`;
   bindInteractiveCards('#candidates');
 }
 
@@ -98,7 +98,7 @@ function renderWatch() {
   const items = sortedWatchlist();
   document.querySelectorAll('[data-watch-sort]').forEach(button => { const active = button.dataset.watchSort === watchSort; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   document.querySelector('#watch-sort-note').textContent = watchSort === 'default' ? t('watchDefaultOrder') : '';
-  document.querySelector('#watchlist').innerHTML = items.length ? items.map(x => `<article data-repo="${esc(x.full_name)}"><div><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><span>${x.manual ? t('manualPin') : esc(x.reason || 'watchlist')}</span></div><div><strong>${fmt(x.stars)}</strong><small>${x.manual ? t('noExpiry') : `${t('until')} ${date(x.expires_at)}`}</small>${pinButton(x.full_name)}</div></article>`).join('') : `<p class="empty">${t('watchEmpty')}</p>`;
+  document.querySelector('#watchlist').innerHTML = items.length ? items.map(x => `<article class="radar-row list-group-item d-flex justify-content-between gap-2" data-repo="${esc(x.full_name)}"><div class="min-w-0"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><span class="text-muted-radar small d-block">${x.manual ? t('manualPin') : esc(x.reason || 'watchlist')}</span></div><div class="text-end flex-shrink-0"><strong class="d-block">${fmt(x.stars)}</strong><small class="text-muted-radar d-block">${x.manual ? t('noExpiry') : `${t('until')} ${date(x.expires_at)}`}</small>${pinButton(x.full_name)}</div></article>`).join('') : `<p class="text-muted-radar p-3 mb-0">${t('watchEmpty')}</p>`;
   bindInteractiveCards('#watchlist');
 }
 
@@ -111,7 +111,7 @@ function selectWatchSort(sort) {
 function renderPinned() {
   const indexed = new Map(state.watch.map(x => [x.full_name.toLowerCase(), x]));
   const items = state.pins.map(name => indexed.get(name.toLowerCase()) || { full_name: name, manual: true });
-  document.querySelector('#pinned-list').innerHTML = items.map(x => `<article class="candidate pinned-card card-body" data-repo="${esc(x.full_name)}"><div class="candidate-main"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p>${esc(x.description || t('pendingSnapshot'))}</p><div class="tags"><span>${t('manualPin')}</span><span>${x.stars == null ? t('snapshotWaiting') : `${fmt(x.stars)} stars`}</span></div></div><div class="numbers">${pinButton(x.full_name)}</div></article>`).join('') || `<p class="empty">${t('pinnedEmpty')}</p>`;
+  document.querySelector('#pinned-list').innerHTML = items.map(x => `<article class="radar-row list-group-item d-flex justify-content-between gap-2" data-repo="${esc(x.full_name)}"><div class="min-w-0"><a href="${esc(github(x))}" target="_blank" rel="noreferrer noopener">${esc(x.full_name)} ↗</a><p class="mb-2">${esc(x.description || t('pendingSnapshot'))}</p><span class="badge badge-radar me-1">${t('manualPin')}</span><span class="badge badge-radar">${x.stars == null ? t('snapshotWaiting') : `${fmt(x.stars)} stars`}</span></div><div class="flex-shrink-0">${pinButton(x.full_name)}</div></article>`).join('') || `<p class="text-muted-radar p-3 mb-0">${t('pinnedEmpty')}</p>`;
   bindInteractiveCards('#pinned-list');
 }
 
@@ -129,7 +129,7 @@ async function togglePin(fullName) {
 
 function historyChoice(item) {
   const ready = item.stars != null;
-  return `<button class="history-choice btn btn-outline-info" data-history-repo="${esc(item.full_name)}"${ready ? '' : ' disabled'}><strong>${esc(item.full_name)}</strong><span>${ready ? `${fmt(item.stars)} stars` : t('snapshotWaiting')}</span></button>`;
+  return `<div class="col"><button class="history-choice btn btn-outline-info w-100" data-history-repo="${esc(item.full_name)}"${ready ? '' : ' disabled'}><strong>${esc(item.full_name)}</strong><span>${ready ? `${fmt(item.stars)} stars` : t('snapshotWaiting')}</span></button></div>`;
 }
 
 function renderHistoryCatalogue() {
@@ -260,7 +260,7 @@ async function showHistory(repo) {
     },
     plugins: [latestLabel],
   });
-  document.querySelector('#history-summary').innerHTML = `<div><p class="eyebrow">${t('projectHistory')}</p><h2>${esc(item.full_name)}</h2><p>${esc(item.description || t('noDescription'))}</p><p id="history-note" class="history-note"></p><div class="tags"><span>${esc(item.language || '—')}</span><span>${fmt(item.stars)} stars</span><span>${t('lastSnapshot')} ${date(item.ts)}</span></div></div><div class="history-actions"><button class="history-back" data-history-back>${t('historyBack')}</button><a href="${esc(github(item))}" target="_blank" rel="noreferrer noopener">${t('openGithub')}</a>${pinButton(item.full_name)}</div>`;
+  document.querySelector('#history-summary').innerHTML = `<div class="flex-grow-1"><p class="eyebrow">${t('projectHistory')}</p><h2 class="h4">${esc(item.full_name)}</h2><p class="text-muted-radar">${esc(item.description || t('noDescription'))}</p><p id="history-note" class="history-note"></p><span class="badge badge-radar me-1">${esc(item.language || '—')}</span><span class="badge badge-radar me-1">${fmt(item.stars)} stars</span><span class="badge badge-radar">${t('lastSnapshot')} ${date(item.ts)}</span></div><div class="history-actions"><button class="history-back btn btn-outline-info" data-history-back>${t('historyBack')}</button><a class="btn btn-outline-info" href="${esc(github(item))}" target="_blank" rel="noreferrer noopener">${t('openGithub')}</a>${pinButton(item.full_name)}</div>`;
   document.querySelector('#history-note').textContent = `${snapshots.length} ${t('observations')} · ${date(snapshots[0].ts)} — ${date(snapshots.at(-1).ts)} · ${browserTimeZone}`;
   bindInteractiveCards('#history-summary');
   document.querySelector('[data-history-back]').onclick = () => selectMetric(historyReturnView);
