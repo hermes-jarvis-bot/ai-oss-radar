@@ -196,6 +196,12 @@ def test_pin_toggle_uses_theme_native_bootstrap_button_variables():
     assert '--bs-btn-hover-bg:color-mix(in srgb,var(--radar-accent) 14%,var(--radar-panel))' in styles
 
 
+def test_manual_pin_add_control_is_not_primary_blue():
+    index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
+    assert 'class="pin-add btn btn-outline-secondary"' in index
+    assert '<button class="btn btn-primary" data-i18n="pinAdd">' not in index
+
+
 def test_pinned_cards_and_watchlist_rows_link_to_history_details():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert 'class="radar-row list-group-item d-flex justify-content-between gap-2" data-repo="${esc(x.full_name)}"' in source
