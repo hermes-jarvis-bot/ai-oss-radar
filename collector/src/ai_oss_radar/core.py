@@ -538,7 +538,7 @@ def _source(source: str, scope: str | None) -> str:
 def render_markdown(items: list[dict], underground: list[dict] | None = None) -> str:
     stamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     lines = [
-        f"# AI OSS Radar — {stamp}",
+        f"AI OSS Radar — {stamp}",
         "",
         "Snapshot history takes precedence; Trending signals are explicit bootstrap data.",
         "",
