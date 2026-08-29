@@ -259,8 +259,15 @@ def test_index_disables_stale_browser_document_cache():
 
 def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
     index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
+    source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert 'style.css?v=20260829-watch-heading' in index
-    assert 'app.js?v=20260829-watch-categories-v2' in index
+    assert 'app.js?v=20260829-pinned-sort' in index
+    assert 'data-pinned-sort="default"' in index
+    assert 'data-pinned-sort="stars-desc"' in index
+    assert 'data-pinned-sort="stars-asc"' in index
+    assert 'function sortedPinned()' in source
+    assert 'storageSet(\'radar-pinned-sort\', sort)' in source
+    assert 'selectPinnedSort(button.dataset.pinnedSort)' in source
     assert 'watch-heading d-flex justify-content-between' in index
     assert 'watch-sort-wrap' in index
 
