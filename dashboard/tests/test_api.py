@@ -44,6 +44,39 @@ def seed(path):
     conn.commit()
 
 
+def test_db_falls_back_to_immutable_read_only_mode_for_closed_wal(tmp_path, monkeypatch):
+    path = tmp_path / "radar.db"
+    path.touch()
+    monkeypatch.setattr(main, "DB_PATH", str(path))
+    calls = []
+
+    class FakeConnection:
+        row_factory = None
+
+        def execute(self, *_args):
+            return self
+
+        def fetchone(self):
+            return None
+
+        def close(self):
+            pass
+
+    def connect(database, uri=False):
+        calls.append(database)
+        if len(calls) == 1:
+            raise sqlite3.OperationalError("unable to open database file")
+        return FakeConnection()
+
+    monkeypatch.setattr(main.sqlite3, "connect", connect)
+    connection = main.db()
+    assert isinstance(connection, FakeConnection)
+    assert calls == [
+        f"file:{path}?mode=ro",
+        f"file:{path}?mode=ro&immutable=1",
+    ]
+
+
 def test_summary_and_history(tmp_path, monkeypatch):
     path = tmp_path / "radar.db"
     seed(path)

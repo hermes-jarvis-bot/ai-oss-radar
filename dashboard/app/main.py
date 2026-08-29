@@ -72,10 +72,31 @@ def save_manual_pins(values: list[str]) -> None:
     os.replace(temporary.name, CONTROL_PATH)
 
 
+def _open_read_only(uri: str) -> sqlite3.Connection:
+    connection = sqlite3.connect(uri, uri=True)
+    try:
+        # sqlite3.connect() is lazy; force SQLite to open the schema here so
+        # WAL/read-only failures are handled before an endpoint query.
+        connection.execute("SELECT 1 FROM sqlite_master LIMIT 1").fetchone()
+    except sqlite3.OperationalError:
+        connection.close()
+        raise
+    return connection
+
+
 def db() -> sqlite3.Connection:
     if not Path(DB_PATH).exists():
         raise HTTPException(status_code=503, detail="Radar database is not available")
-    conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    try:
+        conn = _open_read_only(f"file:{DB_PATH}?mode=ro")
+    except sqlite3.OperationalError as error:
+        # A read-only bind mount cannot create SQLite's WAL sidecars after the
+        # collector has closed them. Immutable mode is safe for this dashboard
+        # because the data mount is deliberately read-only.
+        try:
+            conn = _open_read_only(f"file:{DB_PATH}?mode=ro&immutable=1")
+        except sqlite3.OperationalError:
+            raise error
     conn.row_factory = sqlite3.Row
     return conn
 
