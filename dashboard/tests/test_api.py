@@ -259,8 +259,10 @@ def test_index_disables_stale_browser_document_cache():
 
 def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
     index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
-    assert 'style.css?v=20260829-pincompact' in index
+    assert 'style.css?v=20260829-watch-heading' in index
     assert 'app.js?v=20260829-watch-categories-v2' in index
+    assert 'watch-heading d-flex justify-content-between' in index
+    assert 'watch-sort-wrap' in index
 
 
 def test_theme_syncs_bootstrap_color_mode():
