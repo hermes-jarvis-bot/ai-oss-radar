@@ -88,6 +88,7 @@ def test_summary_and_history(tmp_path, monkeypatch):
     assert history["history"][0]["stars"] == 100
     assert history["summary"]["description"] == "demo"
     assert client.get("/api/watchlist").json()[0]["reason"] == "top_ranked"
+    assert client.get("/api/watchlist").json()[0]["category"] == "ai-tooling"
 
 
 def test_repository_current_stars_comes_from_latest_snapshot(tmp_path, monkeypatch):
@@ -212,6 +213,17 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert 'btn-group btn-group-sm' in index
 
 
+def test_watchlist_category_filter_contract_is_present():
+    static = Path(__file__).parents[1] / "app" / "static"
+    index = (static / "index.html").read_text()
+    source = (static / "app.js").read_text()
+    for category in ("all", "coding-agents", "orchestrators", "skills", "mcp-tools", "memory-rag", "browser-use", "local-ai", "ai-tooling"):
+        assert f'data-watch-category="{category}"' in index
+    assert "function selectWatchCategory(category)" in source
+    assert "item.category === watchCategory" in source
+    assert "renderWatchCategories(allItems)" in source
+
+
 def test_watchlist_rows_use_human_reason_labels_and_descriptions():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert "function watchReason(item)" in source
@@ -248,7 +260,7 @@ def test_index_disables_stale_browser_document_cache():
 def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
     index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
     assert 'style.css?v=20260829-pincompact' in index
-    assert 'app.js?v=20260812-private-theme-v3' in index
+    assert 'app.js?v=20260829-watch-categories-v2' in index
 
 
 def test_theme_syncs_bootstrap_color_mode():

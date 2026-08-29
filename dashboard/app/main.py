@@ -23,6 +23,15 @@ CONTROL_PATH = Path(os.getenv("MANUAL_WATCHLIST", "/control/pins.json"))
 REFRESH_TOKEN = os.getenv("RADAR_REFRESH_TOKEN", "")
 REFRESH_RUNNER_URL = os.getenv("RADAR_REFRESH_RUNNER_URL", "http://host.docker.internal:8097")
 REPOSITORY_NAME = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+CATEGORY_KEYWORDS = {
+    "coding-agents": ("coding agent", "code agent", "claude code", "codex", "cursor"),
+    "orchestrators": ("agent framework", "multi-agent", "orchestrator", "agentic"),
+    "skills": ("agent skill", "skills", "skill.md", "plugin"),
+    "mcp-tools": ("mcp", "model context protocol"),
+    "memory-rag": ("memory", "context engineering", "rag", "retrieval", "graph rag"),
+    "browser-use": ("browser agent", "computer use", "browser automation"),
+    "local-ai": ("local llm", "inference", "ollama", "vllm", "mlx"),
+}
 STATIC = Path(__file__).parent / "static"
 app = FastAPI(title="AI OSS Radar Dashboard", version="0.1.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
@@ -47,6 +56,13 @@ def manual_pins() -> list[str]:
             if isinstance(value, str) and REPOSITORY_NAME.fullmatch(value)
         }
     )
+
+
+def repository_category(*values: Any) -> str:
+    text = " ".join(str(value or "") for value in values).lower()
+    scored = [(sum(keyword in text for keyword in keywords), name) for name, keywords in CATEGORY_KEYWORDS.items()]
+    score, name = max(scored, default=(0, "ai-tooling"))
+    return name if score else "ai-tooling"
 
 
 @contextmanager
@@ -193,7 +209,7 @@ def watchlist() -> list[dict[str, Any]]:
     try:
         entries = rows(
             """SELECT w.full_name, w.added_at, w.expires_at, w.reason, w.pinned, w.last_seen_at,
-                      s.stars, s.html_url, s.description
+                      s.stars, s.html_url, s.description, s.language, s.topics
                FROM watchlist_candidates AS w
                LEFT JOIN snapshots AS s ON s.full_name=w.full_name
                  AND s.ts=(SELECT max(ts) FROM snapshots WHERE full_name=w.full_name)
@@ -207,7 +223,7 @@ def watchlist() -> list[dict[str, Any]]:
     if missing:
         placeholders = ",".join("?" for _ in missing)
         snapshot_rows = rows(
-            f"""SELECT s.full_name, s.stars, s.html_url, s.description FROM snapshots AS s
+            f"""SELECT s.full_name, s.stars, s.html_url, s.description, s.language, s.topics FROM snapshots AS s
                 WHERE lower(s.full_name) IN ({placeholders})
                   AND s.ts=(SELECT max(ts) FROM snapshots WHERE lower(full_name)=lower(s.full_name))""",
             tuple(name.lower() for name in missing),
@@ -220,6 +236,9 @@ def watchlist() -> list[dict[str, Any]]:
     manual = {name.lower() for name in manual_pins()}
     for entry in entries:
         entry["manual"] = entry["full_name"].lower() in manual
+        entry["category"] = repository_category(
+            entry.get("full_name"), entry.get("description"), entry.get("language"), entry.get("topics")
+        )
     return entries
 
 
