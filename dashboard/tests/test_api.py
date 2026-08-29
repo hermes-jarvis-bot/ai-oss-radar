@@ -208,6 +208,7 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert 'function sortedWatchlist()' in source
     assert "storageSet('radar-watch-sort', sort)" in source
     assert 'box-shadow:inset 0 0 0 2px var(--radar-accent)' in styles
+    assert '.radar-row>.pin-toggle{justify-self:end;width:auto}' in styles
     assert 'btn-group btn-group-sm' in index
 
 
@@ -246,7 +247,7 @@ def test_index_disables_stale_browser_document_cache():
 
 def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
     index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
-    assert 'style.css?v=20260812-private-theme-v3' in index
+    assert 'style.css?v=20260829-pincompact' in index
     assert 'app.js?v=20260812-private-theme-v3' in index
 
 
