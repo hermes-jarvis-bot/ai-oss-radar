@@ -210,7 +210,8 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert 'data-watch-sort="expiry-latest"' in index
     assert 'watchSort === \'expiry-soonest\'' in source
     assert 'watchSort === \'expiry-latest\'' in source
-    assert 'Date.parse(item.expires_at)' in source
+    assert 'if (aExpiry == null) return direction === 1 ? 1 : -1;' in source
+    assert 'if (bExpiry == null) return direction === 1 ? -1 : 1;' in source
     assert 'function sortedWatchlist()' in source
     assert "storageSet('radar-watch-sort', sort)" in source
     assert 'box-shadow:inset 0 0 0 2px var(--radar-accent)' in styles
@@ -266,7 +267,7 @@ def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
     index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert 'style.css?v=20260829-watch-heading' in index
-    assert 'app.js?v=20260829-pinned-sort' in index
+    assert 'app.js?v=20260831-expiry-infinity' in index
     assert 'data-pinned-sort="default"' in index
     assert 'data-pinned-sort="stars-desc"' in index
     assert 'data-pinned-sort="stars-asc"' in index

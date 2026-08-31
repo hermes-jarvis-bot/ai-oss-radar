@@ -103,8 +103,8 @@ function sortedWatchlist() {
   const byExpiry = (a, b, direction) => {
     const aExpiry = expiry(a); const bExpiry = expiry(b);
     if (aExpiry == null && bExpiry == null) return byName(a, b);
-    if (aExpiry == null) return 1;
-    if (bExpiry == null) return -1;
+    if (aExpiry == null) return direction === 1 ? 1 : -1;
+    if (bExpiry == null) return direction === 1 ? -1 : 1;
     return direction * (aExpiry - bExpiry) || byName(a, b);
   };
   if (watchSort === 'expiry-soonest') return items.sort((a, b) => byExpiry(a, b, 1));
