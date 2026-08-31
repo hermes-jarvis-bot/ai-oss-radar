@@ -35,6 +35,8 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run pytest
+      - run: node --check app/static/sorting.js
+      - run: node --test tests/test_sorting.js
       - run: node --check app/static/app.js
 
   deployment-config:
