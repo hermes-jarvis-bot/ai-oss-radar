@@ -206,6 +206,11 @@ def test_watchlist_sort_controls_and_metric_focus_contracts():
     assert 'data-watch-sort="default"' in index
     assert 'data-watch-sort="stars-desc"' in index
     assert 'data-watch-sort="stars-asc"' in index
+    assert 'data-watch-sort="expiry-soonest"' in index
+    assert 'data-watch-sort="expiry-latest"' in index
+    assert 'watchSort === \'expiry-soonest\'' in source
+    assert 'watchSort === \'expiry-latest\'' in source
+    assert 'Date.parse(item.expires_at)' in source
     assert 'function sortedWatchlist()' in source
     assert "storageSet('radar-watch-sort', sort)" in source
     assert 'box-shadow:inset 0 0 0 2px var(--radar-accent)' in styles
