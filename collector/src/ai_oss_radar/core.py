@@ -258,7 +258,9 @@ def discover_watchlist(names: list[str]) -> dict[str, Repo]:
                 location = urlparse(response.headers.get("location", ""))
                 if location.netloc == "api.github.com" and location.path.startswith("/repositories/"):
                     response = client.get(location.path + (f"?{location.query}" if location.query else ""))
-            if response.status_code == 404:
+            # A repository can disappear or become legally unavailable while
+            # remaining in a saved watchlist; skip only that repository.
+            if response.status_code in {404, 451}:
                 continue
             response.raise_for_status()
             item = response.json()

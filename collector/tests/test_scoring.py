@@ -1,6 +1,8 @@
 import json
 from datetime import UTC, datetime, timedelta
 
+import httpx
+
 from ai_oss_radar import core
 from ai_oss_radar.core import (
     Repo,
@@ -168,6 +170,40 @@ def test_github_client_handles_redirects_explicitly(monkeypatch):
     monkeypatch.setenv("GITHUB_TOKEN", "test-token")
     with gh_client() as client:
         assert client.follow_redirects is False
+
+def test_discover_watchlist_skips_missing_and_restricted_repositories(monkeypatch):
+    class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return None
+
+        def get(self, path, **_):
+            name = path.removeprefix("/repos/")
+            statuses = {"missing/repo": 404, "restricted/repo": 451}
+            if name in statuses:
+                return httpx.Response(statuses[name], request=httpx.Request("GET", f"https://api.github.com{path}"))
+            return httpx.Response(
+                200,
+                json={
+                    "full_name": name,
+                    "html_url": f"https://github.com/{name}",
+                    "description": "AI coding agent",
+                    "stargazers_count": 100,
+                    "forks_count": 10,
+                    "created_at": "2026-01-01T00:00:00Z",
+                    "pushed_at": "2026-01-02T00:00:00Z",
+                    "language": "Python",
+                    "topics": ["ai-agent"],
+                },
+                request=httpx.Request("GET", f"https://api.github.com{path}"),
+            )
+
+    monkeypatch.setattr(core, "gh_client", lambda: FakeClient())
+    found = core.discover_watchlist(["missing/repo", "restricted/repo", "valid/repo"])
+    assert list(found) == ["valid/repo"]
+
 
 def test_dynamic_watchlist_retains_trending_candidates_for_14_days(tmp_path):
     conn = connect(str(tmp_path / "radar.db"))
