@@ -131,6 +131,10 @@ def test_empty_database_returns_explicit_empty_summary(tmp_path, monkeypatch):
 def test_mobile_empty_and_expiry_guards_are_present():
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
     assert "!health.latest_snapshot" in source
+    assert "setLoading(t('loadingWatchlist'))" in source
+    assert "showLoadFault(error)" in source
+    assert 'id="load-progress"' in (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
+    assert ".loading-row" in (Path(__file__).parents[1] / "app" / "static" / "style.css").read_text()
     assert "remaining >= 0 && remaining < 3 * 864e5" in source
     assert "item.html_url || item.url" in source
     assert "Потяните страницу вниз" in (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
@@ -269,8 +273,8 @@ def test_index_disables_stale_browser_document_cache():
 def test_index_versions_theme_assets_to_bypass_stale_mobile_cache():
     index = (Path(__file__).parents[1] / "app" / "static" / "index.html").read_text()
     source = (Path(__file__).parents[1] / "app" / "static" / "app.js").read_text()
-    assert 'style.css?v=20260829-watch-heading' in index
-    assert 'app.js?v=20260831-sorting-routine' in index
+    assert 'style.css?v=20261111-loading' in index
+    assert 'app.js?v=20261111-loading-staged' in index
     assert 'data-pinned-sort="default"' in index
     assert 'data-pinned-sort="stars-desc"' in index
     assert 'data-pinned-sort="stars-asc"' in index

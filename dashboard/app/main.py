@@ -208,11 +208,16 @@ def history(full_name: str) -> dict[str, Any]:
 def watchlist() -> list[dict[str, Any]]:
     try:
         entries = rows(
-            """SELECT w.full_name, w.added_at, w.expires_at, w.reason, w.pinned, w.last_seen_at,
+            """WITH latest AS (
+                   SELECT full_name, max(ts) AS ts
+                   FROM snapshots
+                   GROUP BY full_name
+               )
+               SELECT w.full_name, w.added_at, w.expires_at, w.reason, w.pinned, w.last_seen_at,
                       s.stars, s.html_url, s.description, s.language, s.topics
                FROM watchlist_candidates AS w
-               LEFT JOIN snapshots AS s ON s.full_name=w.full_name
-                 AND s.ts=(SELECT max(ts) FROM snapshots WHERE full_name=w.full_name)
+               LEFT JOIN latest AS l ON l.full_name=w.full_name
+               LEFT JOIN snapshots AS s ON s.full_name=l.full_name AND s.ts=l.ts
                ORDER BY w.pinned DESC, w.expires_at DESC"""
         )
     except sqlite3.OperationalError:
@@ -223,10 +228,16 @@ def watchlist() -> list[dict[str, Any]]:
     if missing:
         placeholders = ",".join("?" for _ in missing)
         snapshot_rows = rows(
-            f"""SELECT s.full_name, s.stars, s.html_url, s.description, s.language, s.topics FROM snapshots AS s
-                WHERE lower(s.full_name) IN ({placeholders})
-                  AND s.ts=(SELECT max(ts) FROM snapshots WHERE lower(full_name)=lower(s.full_name))""",
-            tuple(name.lower() for name in missing),
+            f"""WITH latest AS (
+                    SELECT full_name, max(ts) AS ts
+                    FROM snapshots
+                    GROUP BY full_name
+                )
+                SELECT s.full_name, s.stars, s.html_url, s.description, s.language, s.topics
+                FROM snapshots AS s
+                JOIN latest AS l ON s.full_name=l.full_name AND s.ts=l.ts
+                WHERE s.full_name IN ({placeholders})""",
+            tuple(missing),
         )
         snapshots = {snapshot["full_name"].lower(): snapshot for snapshot in snapshot_rows}
     for name in missing:
